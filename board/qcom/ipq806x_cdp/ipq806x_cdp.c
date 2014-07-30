@@ -438,8 +438,7 @@ static void ipq_pci_gpio_fixup(void)
 	} else if (machid == MACH_TYPE_IPQ806X_DB147) {
 		gpio_1->gpio = -1;
 		gpio_2->gpio = PCIE_1_RST_GPIO;
-	} else if ((machid == MACH_TYPE_IPQ806X_AP148) ||
-				(machid == MACH_TYPE_IPQ806X_AP148_1XX )) {
+	} else if (machid == MACH_TYPE_IPQ806X_AP148) {
 		gpio_2->gpio = -1;
 	}
 }
