@@ -775,6 +775,13 @@ board_ipq806x_params_t board_params[] = {
 			},
 		},
 #endif
+#ifdef CONFIG_IPQ806X_PCI
+		.pcie_cfg = {
+			pcie_board_cfg(0),
+			pcie_board_cfg(1),
+			pcie_board_cfg(2),
+		}
+#endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP145,
