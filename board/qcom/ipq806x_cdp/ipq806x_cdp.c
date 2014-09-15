@@ -26,6 +26,10 @@
 #include <asm/arch-ipq806x/timer.h>
 #include <nand.h>
 #include <phy.h>
+#include <part.h>
+#include <mmc.h>
+#include <environment.h>
+#include <watchdog.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -52,6 +56,23 @@ DECLARE_GLOBAL_DATA_PTR;
 loff_t board_env_offset;
 loff_t board_env_range;
 extern int nand_env_device;
+#ifdef CONFIG_IPQ_MMC
+ipq_mmc mmc_host;
+#endif
+char *env_name_spec;
+extern char *mmc_env_name_spec;
+extern char *nand_env_name_spec;
+int (*saveenv)(void);
+env_t *env_ptr;
+extern env_t *mmc_env_ptr;
+extern env_t *nand_env_ptr;
+extern int mmc_env_init(void);
+extern int mmc_saveenv(void);
+extern void mmc_env_relocate_spec(void);
+
+extern int nand_env_init(void);
+extern int nand_saveenv(void);
+extern void nand_env_relocate_spec(void);
 
 /*
  * Don't have this as a '.bss' variable. The '.bss' and '.rel.dyn'
@@ -97,6 +118,13 @@ static board_ipq806x_params_t *get_board_param(unsigned int machid)
 	for (;;);
 }
 
+#ifdef CONFIG_HW_WATCHDOG
+void hw_watchdog_reset(void)
+{
+	writel(1, APCS_WDT0_RST);
+}
+#endif
+
 int board_init()
 {
 	int ret;
@@ -113,15 +141,6 @@ int board_init()
 	gd->bd->bi_arch_number = smem_get_board_machtype();
 	gboard_param = get_board_param(gd->bd->bi_arch_number);
 
-	/*
-	 * Should be inited, before env_relocate() is called,
-	 * since env. offset is obtained from SMEM.
-	 */
-	ret = smem_ptable_init();
-	if (ret < 0) {
-		printf("cdp: SMEM init failed\n");
-		return ret;
-	}
 
 	ret = smem_get_boot_flash(&sfi->flash_type,
 				  &sfi->flash_index,
@@ -132,35 +151,91 @@ int board_init()
 		return ret;
 	}
 
+	/*
+	 * Should be inited, before env_relocate() is called,
+	 * since env. offset is obtained from SMEM.
+	 */
+	if (sfi->flash_type != SMEM_BOOT_MMC_FLASH) {
+		ret = smem_ptable_init();
+		if (ret < 0) {
+			printf("cdp: SMEM init failed\n");
+			return ret;
+		}
+	}
+
 	if (sfi->flash_type == SMEM_BOOT_NAND_FLASH) {
 		nand_env_device = CONFIG_IPQ_NAND_NAND_INFO_IDX;
 	} else if (sfi->flash_type == SMEM_BOOT_SPI_FLASH) {
 		nand_env_device = CONFIG_IPQ_SPI_NAND_INFO_IDX;
+#ifdef CONFIG_IPQ_MMC
+	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH) {
+		gboard_param->emmc_gpio = emmc1_gpio;
+		gboard_param->emmc_gpio_count = ARRAY_SIZE(emmc1_gpio);
+#endif
 	} else {
 		printf("BUG: unsupported flash type : %d\n", sfi->flash_type);
 		BUG();
 	}
 
-	ret = smem_getpart("0:APPSBLENV", &start_blocks, &size_blocks);
-	if (ret < 0) {
-		printf("cdp: get environment part failed\n");
-		return ret;
+
+	if (sfi->flash_type != SMEM_BOOT_MMC_FLASH) {
+		ret = smem_getpart("0:APPSBLENV", &start_blocks, &size_blocks);
+		if (ret < 0) {
+			printf("cdp: get environment part failed\n");
+			return ret;
+		}
+
+		board_env_offset = ((loff_t) sfi->flash_block_size) * start_blocks;
+		board_env_size = ((loff_t) sfi->flash_block_size) * size_blocks;
 	}
 
-	board_env_offset = ((loff_t) sfi->flash_block_size) * start_blocks;
-	board_env_size = ((loff_t) sfi->flash_block_size) * size_blocks;
 	if (sfi->flash_type == SMEM_BOOT_NAND_FLASH) {
 		board_env_range = CONFIG_ENV_SIZE_MAX;
 		BUG_ON(board_env_size < CONFIG_ENV_SIZE_MAX);
 	} else if (sfi->flash_type == SMEM_BOOT_SPI_FLASH) {
 		board_env_range = board_env_size;
 		BUG_ON(board_env_size > CONFIG_ENV_SIZE_MAX);
+#ifdef CONFIG_IPQ_MMC
+	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH) {
+		board_env_range = CONFIG_ENV_SIZE_MAX;
+#endif
         } else {
                 printf("BUG: unsupported flash type : %d\n", sfi->flash_type);
                 BUG();
         }
 
+	if (sfi->flash_type != SMEM_BOOT_MMC_FLASH) {
+		saveenv = nand_saveenv;
+		env_ptr = nand_env_ptr;
+		env_name_spec = nand_env_name_spec;
+#ifdef CONFIG_IPQ_MMC
+	} else {
+		saveenv = mmc_saveenv;
+		env_ptr = mmc_env_ptr;
+		env_name_spec = mmc_env_name_spec;
+#endif
+	}
+
 	return 0;
+}
+
+void env_relocate_spec(void)
+{
+	ipq_smem_flash_info_t sfi;
+
+	smem_get_boot_flash(&sfi.flash_type,
+				  &sfi.flash_index,
+				  &sfi.flash_chip_select,
+				  &sfi.flash_block_size);
+
+	if (sfi.flash_type != SMEM_BOOT_MMC_FLASH) {
+		nand_env_relocate_spec();
+#ifdef CONFIG_IPQ_MMC
+	} else {
+		mmc_env_relocate_spec();
+#endif
+	}
+
 }
 
 void enable_caches(void)
@@ -171,6 +246,26 @@ void enable_caches(void)
 #endif
 }
 
+int env_init(void)
+{
+	ipq_smem_flash_info_t sfi;
+	int ret;
+
+	smem_get_boot_flash(&sfi.flash_type,
+				  &sfi.flash_index,
+				  &sfi.flash_chip_select,
+				  &sfi.flash_block_size);
+
+	if (sfi.flash_type != SMEM_BOOT_MMC_FLASH) {
+		ret = nand_env_init();
+#ifdef CONFIG_IPQ_MMC
+	} else {
+		ret = mmc_env_init();
+#endif
+	}
+
+	return ret;
+}
 
 /*******************************************************
 Function description: DRAM initialization.
@@ -330,8 +425,11 @@ void ipq_get_part_details(void)
 int board_late_init(void)
 {
 	unsigned int machid;
+	ipq_smem_flash_info_t *sfi = &ipq_smem_flash_info;
 
-	ipq_get_part_details();
+	if (sfi->flash_type != SMEM_BOOT_MMC_FLASH) {
+		ipq_get_part_details();
+	}
 
         /* get machine type from SMEM and set in env */
 	machid = gd->bd->bi_arch_number;
@@ -361,38 +459,63 @@ int board_early_init_f(void)
  */
 int get_eth_mac_address(uchar *enetaddr, uint no_of_macs)
 {
-	s32 ret;
+	s32 ret = 0 ;
 	u32 start_blocks;
 	u32 size_blocks;
 	u32 length = (6 * no_of_macs);
 	u32 flash_type;
 	loff_t art_offset;
+	ipq_smem_flash_info_t *sfi = &ipq_smem_flash_info;
+#ifdef CONFIG_IPQ_MMC
+	block_dev_desc_t *blk_dev;
+	disk_partition_t disk_info;
+	struct mmc *mmc;
+#endif
 
-	if (ipq_smem_flash_info.flash_type == SMEM_BOOT_SPI_FLASH)
-		flash_type = CONFIG_IPQ_SPI_NAND_INFO_IDX;
-	else if (ipq_smem_flash_info.flash_type == SMEM_BOOT_NAND_FLASH)
-		flash_type = CONFIG_IPQ_NAND_NAND_INFO_IDX;
-	else {
-		printf("Unknown flash type\n");
-		return -EINVAL;
+	if (sfi->flash_type != SMEM_BOOT_MMC_FLASH) {
+		if (ipq_smem_flash_info.flash_type == SMEM_BOOT_SPI_FLASH)
+			flash_type = CONFIG_IPQ_SPI_NAND_INFO_IDX;
+		else if (ipq_smem_flash_info.flash_type == SMEM_BOOT_NAND_FLASH)
+			flash_type = CONFIG_IPQ_NAND_NAND_INFO_IDX;
+		else {
+			printf("Unknown flash type\n");
+			return -EINVAL;
+		}
+
+		ret = smem_getpart("0:ART", &start_blocks, &size_blocks);
+		if (ret < 0) {
+			printf("No ART partition found\n");
+			return ret;
+		}
+
+		/*
+		 * ART partition 0th position (6 * 4) 24 bytes will contain the
+		 * 4 MAC Address. First 0-5 bytes for GMAC0, Second 6-11 bytes
+		 * for GMAC1, 12-17 bytes for GMAC2 and 18-23 bytes for GMAC3
+		 */
+		art_offset = ((loff_t) ipq_smem_flash_info.flash_block_size * start_blocks);
+
+		ret = nand_read(&nand_info[flash_type], art_offset, &length, enetaddr);
+		if (ret < 0)
+			printf("ART partition read failed..\n");
+#ifdef CONFIG_IPQ_MMC
+	} else {
+		blk_dev = mmc_get_dev(mmc_host.dev_num);
+		ret = find_part_efi(blk_dev, "0:ART", &disk_info);
+		/*
+		 * ART partition 0th position (6 * 4) 24 bytes will contain the
+		 * 4 MAC Address. First 0-5 bytes for GMAC0, Second 6-11 bytes
+		 * for GMAC1, 12-17 bytes for GMAC2 and 18-23 bytes for GMAC3
+		 */
+		art_offset = ((loff_t) blk_dev->blksz * start_blocks);
+		mmc = mmc_host.mmc;
+		ret = mmc->block_dev.block_read(mmc_host.dev_num, art_offset, length,
+									enetaddr);
+
+		if (ret < 0)
+			printf("ART partition read failed..\n");
+#endif
 	}
-
-	ret = smem_getpart("0:ART", &start_blocks, &size_blocks);
-	if (ret < 0) {
-		printf("No ART partition found\n");
-		return ret;
-	}
-
-	/*
-	 * ART partition 0th position (6 * 4) 24 bytes will contain the
-	 * 4 MAC Address. First 0-5 bytes for GMAC0, Second 6-11 bytes
-	 * for GMAC1, 12-17 bytes for GMAC2 and 18-23 bytes for GMAC3
-	 */
-	art_offset = ((loff_t) ipq_smem_flash_info.flash_block_size * start_blocks);
-
-	ret = nand_read(&nand_info[flash_type], art_offset, &length, enetaddr);
-	if (ret < 0)
-		printf("ART partition read failed..\n");
 	return ret;
 }
 
@@ -425,6 +548,62 @@ int board_eth_init(bd_t *bis)
 	return status;
 }
 
+#ifdef CONFIG_IPQ_MMC
+
+int board_mmc_env_init(void)
+{
+	block_dev_desc_t *blk_dev;
+	disk_partition_t disk_info;
+	loff_t board_env_size;
+	int ret;
+
+	if(mmc_init(mmc_host.mmc)) {
+		printf("MMC init failed \n");
+		return -1;
+	}
+	blk_dev = mmc_get_dev(mmc_host.dev_num);
+	ret = find_part_efi(blk_dev, "0:APPSBLENV", &disk_info);
+
+	if (ret) {
+		board_env_offset = disk_info.start * disk_info.blksz;
+		board_env_size = disk_info.size * disk_info.blksz;
+		board_env_range = board_env_size;
+		BUG_ON(board_env_size > CONFIG_ENV_SIZE_MAX);
+	}
+	return ret;
+}
+
+int board_mmc_init(bd_t *bis)
+{
+	gpio_func_data_t *gpio = gboard_param->emmc_gpio;
+
+	if (gpio) {
+		mmc_host.base = MSM_SDC1_BASE;
+		ipq_configure_gpio(gboard_param->emmc_gpio,
+				gboard_param->emmc_gpio_count);
+		mmc_host.clk_mode = MMC_IDENTIFY_MODE;
+		emmc_clock_config(mmc_host.clk_mode);
+
+		ipq_mmc_init(bis, &mmc_host);
+		board_mmc_env_init();
+	}
+	return 0;
+}
+
+void board_mmc_deinit(void)
+{
+	int i;
+	gpio_func_data_t *gpio = gboard_param->emmc_gpio;
+
+	if (gpio) {
+		for (i = 0; i < gboard_param->emmc_gpio_count; i++) {
+			gpio_tlmm_config(gpio->gpio, 0, 0, 0, 0, 0);
+			gpio++;
+		}
+		emmc_clock_disable();
+	}
+}
+#endif
 
 #ifdef CONFIG_OF_BOARD_SETUP
 /*
@@ -599,14 +778,14 @@ void board_pci_init()
 								BIT(0));
 		udelay(500);
 
-		for (j = 0; j < 1000; j++) {
+		for (j = 0; j < 400; j++) {
 			val = readl(cfg->pcie20 + PCIE20_CAP_LINKCTRLSTATUS);
 			if (val & BIT(29)) {
 				printf("PCI%d Link Intialized\n", i);
 				cfg->linkup = 1;
 				break;
 			}
-			udelay(1000);
+			udelay(35);
 		}
 		ipq_pcie_config_controller(i);
 	}
