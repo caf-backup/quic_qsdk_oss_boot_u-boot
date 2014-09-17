@@ -242,5 +242,9 @@ void uart_clock_config(unsigned int gsbi_port, unsigned int m, unsigned int n,
 void i2c_clock_config(unsigned int gsbi_port, unsigned int m, unsigned int n,
 		unsigned int d, unsigned int clk_dummy);
 void nand_clock_config(void);
+void usb_ss_core_clock_config(unsigned int usb_port, unsigned int m,
+		unsigned int n, unsigned int d, unsigned int clk_dummy);
+void usb_ss_utmi_clock_config(unsigned int usb_port, unsigned int m,
+		unsigned int n, unsigned int d, unsigned int clk_dummy);
 
 #endif  /*  __PLATFORM_IPQ860X_CLOCK_H_ */
