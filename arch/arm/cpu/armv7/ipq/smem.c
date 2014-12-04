@@ -53,8 +53,9 @@ typedef enum {
 	SMEM_BOOT_FLASH_BLOCK_SIZE = 424,
 	SMEM_MACHID_INFO_LOCATION = 425,
 	SMEM_FIRST_VALID_TYPE = SMEM_SPINLOCK_ARRAY,
-	SMEM_LAST_VALID_TYPE = SMEM_MACHID_INFO_LOCATION,
-	SMEM_MAX_SIZE = SMEM_MACHID_INFO_LOCATION + 1,
+	SMEM_MIBIB_ACTIVE = 427,
+	SMEM_LAST_VALID_TYPE = SMEM_MIBIB_ACTIVE,
+	SMEM_MAX_SIZE = SMEM_MIBIB_ACTIVE + 1,
 } smem_mem_type_t;
 
 struct smem_proc_comm {
@@ -191,6 +192,22 @@ int smem_ptable_init(void)
 	      smem_ptable.version, smem_ptable.len);
 
 	return 0;
+}
+
+unsigned int get_mibib_active_partition(void)
+{
+	int ret;
+	uint32_t primary_mibib = 0;
+
+	ret = smem_read_alloc_entry(SMEM_MIBIB_ACTIVE,
+				    &primary_mibib, sizeof(uint32_t));
+	if (ret != 0) {
+		printf("smem: SMEM_PARTITION_TABLE_OFFSET failed\n");
+		primary_mibib = 0;
+	}
+
+	return primary_mibib;
+
 }
 
 /**
@@ -336,9 +353,11 @@ int do_smeminfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	printf(	"flash_type:		0x%x\n"
 		"flash_index:		0x%x\n"
 		"flash_chip_select:	0x%x\n"
-		"flash_block_size:	0x%x\n",
+		"flash_block_size:	0x%x\n"
+		"active mibib partition 0x%x\n",
 			sfi->flash_type, sfi->flash_index,
-			sfi->flash_chip_select, sfi->flash_block_size);
+			sfi->flash_chip_select, sfi->flash_block_size,
+			get_mibib_active_partition());
 
 	if (smem_ptable.len > 0) {
 		printf("%-3s: " smem_ptn_name_fmt " %10s %16s %16s\n",

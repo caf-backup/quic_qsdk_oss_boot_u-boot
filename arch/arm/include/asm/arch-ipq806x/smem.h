@@ -77,4 +77,6 @@ extern ipq_smem_flash_info_t ipq_smem_flash_info;
 
 void ipq_set_part_entry(ipq_smem_flash_info_t *sfi, ipq_part_entry_t *part,
 			uint32_t start, uint32_t size);
+unsigned int get_mibib_active_partition(void);
+
 #endif
