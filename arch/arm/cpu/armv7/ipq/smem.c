@@ -53,9 +53,10 @@ typedef enum {
 	SMEM_BOOT_FLASH_BLOCK_SIZE = 424,
 	SMEM_MACHID_INFO_LOCATION = 425,
 	SMEM_FIRST_VALID_TYPE = SMEM_SPINLOCK_ARRAY,
-	SMEM_MIBIB_ACTIVE = 427,
-	SMEM_LAST_VALID_TYPE = SMEM_MIBIB_ACTIVE,
-	SMEM_MAX_SIZE = SMEM_MIBIB_ACTIVE + 1,
+	SMEM_BOOT_DUALPARTINFO = 427,
+	SMEM_PARTITION_TABLE_OFFSET = 428,
+	SMEM_LAST_VALID_TYPE = SMEM_PARTITION_TABLE_OFFSET,
+	SMEM_MAX_SIZE = SMEM_PARTITION_TABLE_OFFSET + 1,
 } smem_mem_type_t;
 
 struct smem_proc_comm {
@@ -199,7 +200,7 @@ unsigned int get_mibib_active_partition(void)
 	int ret;
 	uint32_t primary_mibib = 0;
 
-	ret = smem_read_alloc_entry(SMEM_MIBIB_ACTIVE,
+	ret = smem_read_alloc_entry(SMEM_PARTITION_TABLE_OFFSET,
 				    &primary_mibib, sizeof(uint32_t));
 	if (ret != 0) {
 		printf("smem: SMEM_PARTITION_TABLE_OFFSET failed\n");
