@@ -24,6 +24,7 @@
 #define SCM_SVC_CP			0xC
 #define SCM_SVC_DCVS			0xD
 #define SCM_SVC_TZSCHEDULER		0xFC
+#define QFPROM_IS_AUTHENTICATE_CMD	0x7
 
 
 #define KERNEL_AUTH_CMD			0x7
