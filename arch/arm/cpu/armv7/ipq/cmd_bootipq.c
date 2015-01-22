@@ -215,7 +215,7 @@ static int switch_ce_channel_buf(unsigned int channel_id)
 /**
  * Load the Kernel image in mbn format and transfer control to kernel.
  */
-static int do_bootmbn(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 #ifdef CONFIG_IPQ_LOAD_NSS_FW
 	char bootargs[IH_NMLEN+32];
@@ -443,14 +443,11 @@ static int do_bootmbn(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	return CMD_RET_SUCCESS;
 }
 
-U_BOOT_CMD(bootmbn, 2, 0, do_bootmbn,
-	   "bootmbn from flash device",
-	   "bootmbn [debug] - Load image(s) and boots the kernel\n");
 
 /**
  * Load the NSS images and Kernel image and transfer control to kernel
  */
-static int do_bootipq(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 #ifdef CONFIG_IPQ_LOAD_NSS_FW
 	char bootargs[IH_NMLEN+32];
@@ -631,6 +628,25 @@ static int do_bootipq(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	}
 
 	return CMD_RET_SUCCESS;
+}
+
+static int do_bootipq(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+{
+	int ret;
+	char buf;
+
+	ret = scm_call(SCM_SVC_FUSE, QFPROM_IS_AUTHENTICATE_CMD,
+			NULL, 0, &buf, sizeof(char));
+	if (ret)
+		return CMD_RET_FAILURE;
+
+	if (buf == 1) {
+		ret = do_boot_signedimg(cmdtp, flag, argc, argv);
+	} else {
+		ret = do_boot_unsignedimg(cmdtp, flag, argc, argv);
+	}
+
+	return ret;
 }
 
 U_BOOT_CMD(bootipq, 2, 0, do_bootipq,
