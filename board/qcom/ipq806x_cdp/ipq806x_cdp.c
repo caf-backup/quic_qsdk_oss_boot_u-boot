@@ -707,18 +707,6 @@ void ft_board_setup(void *blob, bd_t *bd)
 #endif /* CONFIG_OF_BOARD_SETUP */
 
 #ifdef CONFIG_IPQ806X_PCI
-
-static inline void ipq_pci_gpio_set(uint32_t gpio, uint32_t set)
-{
-	uint32_t addr;
-	uint32_t val;
-
-	addr = GPIO_IN_OUT_ADDR(gpio);
-	val = readl(addr);
-	val |= (1 << set);
-	writel(val, addr);
-}
-
 static void ipq_pci_gpio_fixup(void)
 {
 	unsigned int machid;
@@ -818,14 +806,10 @@ void board_pci_init()
 		gpio_data = cfg->pci_rst_gpio;
 		cfg->axi_conf = cfg->axi_bar_start +
 					cfg->axi_bar_size - PCIE_AXI_CONF_SIZE;
-		if (gpio_data->gpio != -1) {
+		if (gpio_data->gpio != -1)
 			gpio_tlmm_config(gpio_data->gpio, gpio_data->func,
 					gpio_data->out,	gpio_data->pull,
 					gpio_data->drvstr, gpio_data->oe);
-			ipq_pci_gpio_set(gpio_data->gpio, 1);
-			udelay(3000);
-		}
-
 
 		/* assert PCIe PARF reset while powering the core */
 		ipq_pcie_parf_reset(cfg->pcie_rst, BIT(6), 0);
@@ -838,24 +822,19 @@ void board_pci_init()
 		*/
 		ipq_pcie_parf_reset(cfg->pcie_rst, BIT(2), 0);
 		udelay(1);
-
-		/* enable PCIe clocks and resets */
-		val = (readl(cfg->parf + PCIE20_PARF_PHY_CTRL) & ~BIT(0));
-		writel(val, cfg->parf + PCIE20_PARF_PHY_CTRL);
-
 		/* Set Tx Termination Offset */
 		val = readl(cfg->parf + PCIE20_PARF_PHY_CTRL) |
-				PCIE20_PARF_PHY_CTRL_PHY_TX0_TERM_OFFST(0);
+				PCIE20_PARF_PHY_CTRL_PHY_TX0_TERM_OFFST(7);
 		writel(val, cfg->parf + PCIE20_PARF_PHY_CTRL);
 
 		/* PARF programming */
-		writel(PCIE20_PARF_PCS_DEEMPH_TX_DEEMPH_GEN1(0x18) |
-			PCIE20_PARF_PCS_DEEMPH_TX_DEEMPH_GEN2_3_5DB(0x18) |
-			PCIE20_PARF_PCS_DEEMPH_TX_DEEMPH_GEN2_6DB(0x22),
+		writel(PCIE20_PARF_PCS_DEEMPH_TX_DEEMPH_GEN1(0x28) |
+			PCIE20_PARF_PCS_DEEMPH_TX_DEEMPH_GEN2_3_5DB(0x28) |
+			PCIE20_PARF_PCS_DEEMPH_TX_DEEMPH_GEN2_6DB(0x28),
 			 cfg->parf + PCIE20_PARF_PCS_DEEMPH);
 
-		writel(PCIE20_PARF_PCS_SWING_TX_SWING_FULL(0x78) |
-			PCIE20_PARF_PCS_SWING_TX_SWING_LOW(0x78),
+		writel(PCIE20_PARF_PCS_SWING_TX_SWING_FULL(0x7F) |
+			PCIE20_PARF_PCS_SWING_TX_SWING_LOW(0x7F),
 			cfg->parf + PCIE20_PARF_PCS_SWING);
 
 		writel((4<<24), cfg->parf + PCIE20_PARF_CONFIG_BITS);
@@ -876,19 +855,20 @@ void board_pci_init()
 		ipq_pcie_parf_reset(cfg->pcie_rst, BIT(3), 0);
 		ipq_pcie_parf_reset(cfg->pcie_rst, BIT(0), 0);
 
+
 		/* enable link training */
 		ipq_pcie_write_mask(cfg->elbi + PCIE20_ELBI_SYS_CTRL, 0,
 								BIT(0));
 		udelay(500);
 
-		for (j = 0; j < 10; j++) {
+		for (j = 0; j < 400; j++) {
 			val = readl(cfg->pcie20 + PCIE20_CAP_LINKCTRLSTATUS);
 			if (val & BIT(29)) {
 				printf("PCI%d Link Intialized\n", i);
 				cfg->linkup = 1;
 				break;
 			}
-			udelay(10000);
+			udelay(35);
 		}
 		ipq_pcie_config_controller(i);
 	}
