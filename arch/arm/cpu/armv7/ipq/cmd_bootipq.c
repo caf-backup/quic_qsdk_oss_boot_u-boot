@@ -637,16 +637,14 @@ static int do_bootipq(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 
 	ret = scm_call(SCM_SVC_FUSE, QFPROM_IS_AUTHENTICATE_CMD,
 			NULL, 0, &buf, sizeof(char));
-	if (ret)
-		return CMD_RET_FAILURE;
 
-	if (buf == 1) {
-		ret = do_boot_signedimg(cmdtp, flag, argc, argv);
-	} else {
-		ret = do_boot_unsignedimg(cmdtp, flag, argc, argv);
+	if (ret == 0 && buf == 1) {
+		return do_boot_signedimg(cmdtp, flag, argc, argv);
+	} else if (ret == 0 || ret == -EOPNOTSUPP) {
+		return do_boot_unsignedimg(cmdtp, flag, argc, argv);
 	}
 
-	return ret;
+	return CMD_RET_FAILURE;
 }
 
 U_BOOT_CMD(bootipq, 2, 0, do_bootipq,
