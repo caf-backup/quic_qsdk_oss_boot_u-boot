@@ -409,7 +409,6 @@ static int do_qca8511_pp_phy_reg_write( cmd_tbl_t *cmdtp,
 **********************************************************************/
 int ipq_qca8511_init(ipq_gmac_board_cfg_t *gmac_cfg)
 {
-	int ret;
 	uint i;
 	qca8511_pp_reg_write(QCA8511_QSGMII_1_CTRL(QSGMII_1_CTRL0),
 			QSGMII_1_CH0_DUPLEX_MODE |
@@ -466,6 +465,19 @@ int ipq_qca8511_init(ipq_gmac_board_cfg_t *gmac_cfg)
 			QSGMII_4_CH3_PAUSE |
 			QSGMII_4_RSVD30 |
 			QSGMII_4_RSVD31);
+
+	qca8511_pp_reg_write(QCA8511_SGMII_CTRL0(SGMII_CTRL0_PORT8),
+			SGMII_CTRL0_DUPLEX(1) |
+			SGMII_CTRL0_SPEED_MODE(2) |
+			SGMII_CTRL0_MR_AN_EN |
+			SGMII_CTRL0_RSVD16 |
+			SGMII_CTRL0_MODECTRL(2) |
+			SGMII_CTRL0_PAUSE_SG_TX_EN |
+			SGMII_CTRL0_ASYM_PAUSE_EN |
+			SGMII_CTRL0_PAUSE_EN |
+			SGMII_CTRL0_HALF_DUPLEX_EN |
+			SGMII_CTRL0_FULL_DUPLEX_EN);
+
 	/*
 	 * Configure 8511 Ports
 	 */
