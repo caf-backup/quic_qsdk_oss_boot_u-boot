@@ -129,12 +129,8 @@ static int set_fs_bootargs(int *fs_on_nand)
 			 */
 			bootargs = nand_rootfs;
 			*fs_on_nand = 1;
-			if (smem_bootconfig_info() == 0) {
-				active_part = get_rootfs_active_partition();
-				sfi->rootfs.offset = active_part * IPQ_NAND_ROOTFS_SIZE;
-			} else {
-				sfi->rootfs.offset = 0;
-			}
+			active_part = get_rootfs_active_partition();
+			sfi->rootfs.offset = active_part * IPQ_NAND_ROOTFS_SIZE;
 			sfi->rootfs.size = IPQ_NAND_ROOTFS_SIZE;
 		} else {
 			bootargs = nor_rootfs;
@@ -145,13 +141,9 @@ static int set_fs_bootargs(int *fs_on_nand)
 		*fs_on_nand = 1;
 #ifdef CONFIG_IPQ_MMC
 	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH) {
-		if (smem_bootconfig_info() == 0) {
-			active_part = get_rootfs_active_partition();
-			if (active_part) {
-				pos = find_part_efi(blk_dev, IPQ_ROOT_FS_ALT_PART_NAME, &disk_info);
-			} else {
-				pos = find_part_efi(blk_dev, IPQ_ROOT_FS_PART_NAME, &disk_info);
-			}
+		active_part = get_rootfs_active_partition();
+		if (active_part) {
+			pos = find_part_efi(blk_dev, IPQ_ROOT_FS_ALT_PART_NAME, &disk_info);
 		} else {
 			pos = find_part_efi(blk_dev, IPQ_ROOT_FS_PART_NAME, &disk_info);
 		}
@@ -356,13 +348,9 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 
 #ifdef CONFIG_IPQ_MMC
 	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH) {
-		if (smem_bootconfig_info() == 0) {
-			active_part = get_rootfs_active_partition();
-			if (active_part) {
-				ret = find_part_efi(blk_dev, "kernel_1", &disk_info);
-			} else {
-				ret = find_part_efi(blk_dev, "kernel", &disk_info);
-			}
+		active_part = get_rootfs_active_partition();
+		if (active_part) {
+			ret = find_part_efi(blk_dev, "kernel_1", &disk_info);
 		} else {
 			ret = find_part_efi(blk_dev, "kernel", &disk_info);
 		}
@@ -576,13 +564,9 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 				CONFIG_SYS_LOAD_ADDR, CONFIG_SYS_LOAD_ADDR);
 #ifdef CONFIG_IPQ_MMC
 	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH) {
-		if (smem_bootconfig_info() == 0) {
-			active_part = get_rootfs_active_partition();
-			if (active_part) {
-				ret = find_part_efi(blk_dev, "kernel_1", &disk_info);
-			} else {
-				ret = find_part_efi(blk_dev, "kernel", &disk_info);
-			}
+		active_part = get_rootfs_active_partition();
+		if (active_part) {
+			ret = find_part_efi(blk_dev, "kernel_1", &disk_info);
 		} else {
 			ret = find_part_efi(blk_dev, "kernel", &disk_info);
 		}

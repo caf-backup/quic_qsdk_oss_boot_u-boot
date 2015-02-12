@@ -100,7 +100,22 @@ typedef struct
 	struct per_part_info per_part_entry[NUM_ALT_PARTITION];
 } ipq_smem_bootconfig_info_t;
 
+/* version 2 */
+#define SMEM_DUAL_BOOTINFO_MAGIC_START 0xA3A2A1A0
+#define SMEM_DUAL_BOOTINFO_MAGIC_END 0xB3B2B1B0
+
+typedef struct
+{
+	uint32_t magic_start;
+	uint32_t upgradeinprogress;
+	uint32_t age;
+	uint32_t numaltpart;
+	struct per_part_info per_part_entry[NUM_ALT_PARTITION];
+	uint32_t magic_end;
+} ipq_smem_bootconfig_v2_info_t;
+
 extern ipq_smem_bootconfig_info_t ipq_smem_bootconfig_info;
+extern ipq_smem_bootconfig_v2_info_t ipq_smem_bootconfig_v2_info;
 
 int smem_bootconfig_info(void);
 unsigned int get_rootfs_active_partition(void);

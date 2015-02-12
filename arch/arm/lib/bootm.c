@@ -286,24 +286,20 @@ void setup_ipq_partition_tag(struct tag **in_params)
 		printf("Setting up atags for msm partition: "
 				IPQ_ROOT_FS_PART_NAME "\n");
 		strncpy(ptn->name, IPQ_ROOT_FS_PART_NAME, sizeof(ptn->name));
-		if (ipq_smem_bootconfig_info.magic == _SMEM_DUAL_BOOTINFO_MAGIC) {
-			/* When active 0 rootfs is at @0 offset */
-			if (get_rootfs_active_partition() == 0)
-				ptn->offset = 0;
-			else
-			/* When active 1 rootfs is at @0x4000000 offset */
-				ptn->offset = IPQ_NAND_ROOTFS_SIZE /
-						nand_info[CONFIG_IPQ_NAND_NAND_INFO_IDX].erasesize;
-		} else {
+		/* When active 0 rootfs is at @0 offset */
+		if (get_rootfs_active_partition() == 0)
 			ptn->offset = 0;
-		}
+		else
+		/* When active 1 rootfs is at @0x4000000 offset */
+			ptn->offset = IPQ_NAND_ROOTFS_SIZE /
+					nand_info[CONFIG_IPQ_NAND_NAND_INFO_IDX].erasesize;
 		ptn->size = IPQ_NAND_ROOTFS_SIZE /
 			nand_info[CONFIG_IPQ_NAND_NAND_INFO_IDX].erasesize;
 		ptn->flags = 0;
 		ptn ++;
 		nr_parts ++;
 
-		if (ipq_smem_bootconfig_info.magic == _SMEM_DUAL_BOOTINFO_MAGIC) {
+		if (smem_bootconfig_info() == 0) {
 			strncpy(ptn->name, IPQ_ROOT_FS_ALT_PART_NAME, sizeof(ptn->name));
 
 			/* When active is 0 rootfs_1 will be @0x4000000 offset */
