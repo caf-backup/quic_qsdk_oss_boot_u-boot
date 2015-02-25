@@ -699,12 +699,13 @@ class Pack(object):
 
             if (size != img_size):
                 pad_size = size - img_size
-                filename_pad = filename + ".padded"
-                cmd = 'cat %s > %s' % (filename, filename_pad)
+                filename_abs = os.path.join(self.images_dname, filename)
+                filename_abs_pad = filename_abs + ".padded"
+                cmd = 'cat %s > %s' % (filename_abs, filename_abs_pad)
                 ret = subprocess.call(cmd, shell=True)
                 if ret != 0:
                     error("failed to copy image")
-                cmd = 'dd if=/dev/zero count=1 bs=%s %s >> %s' % (pad_size, tr, filename_pad)
+                cmd = 'dd if=/dev/zero count=1 bs=%s %s >> %s' % (pad_size, tr, filename_abs_pad)
                 cmd = '(' + cmd + ') 1>/dev/null 2>/dev/null'
                 ret = subprocess.call(cmd, shell=True)
                 if ret != 0:
@@ -730,6 +731,7 @@ class Pack(object):
             if self.ipq_nand: script.switch_layout(layout)
             if img_size > 0:
                 if ((self.flinfo.type == 'nand' or self.flinfo.type == 'emmc') and (size != img_size)):
+                    filename_pad = filename + ".padded"
                     script.imxtract(section + "-" + sha1(filename_pad))
                 else:
                     script.imxtract(section + "-" + sha1(filename))
