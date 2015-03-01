@@ -697,7 +697,7 @@ class Pack(object):
                 size = roundup(img_size, flinfo.blocksize)
                 tr = ''
 
-            if (size != img_size):
+            if ((self.flinfo.type == 'nand' or self.flinfo.type == 'emmc') and (size != img_size)):
                 pad_size = size - img_size
                 filename_abs = os.path.join(self.images_dname, filename)
                 filename_abs_pad = filename_abs + ".padded"
