@@ -274,6 +274,10 @@
 #define SPEED_100M				1
 #define SPEED_10M				0
 
+/* PHY addr for 8033 Port */
+#define GMAC_8033_PORT0				0x6
+#define GMAC_8033_PORT1				0x7
+
 #define NSS_ETH_CLK_DIV(clk_div, mac_unit)	(clk_div << (mac_unit * 8))
 #define NSS_ETH_CLK_DIV_SHIFT			16
 #define NSS_ETH_CLK_DIV_MASK			0x7F
@@ -338,6 +342,14 @@ typedef struct
 	volatile u32 timestamphigh;	/* Higher 32 bits of the 64 bit timestamp value */
 } ipq_gmac_desc_t ;
 
+struct ipq_forced_mode {
+	u8 is_forced;
+	u32 speed;
+	u8 phy_addr;
+	u8 miiwrite_done;
+	u8 gmac_port;
+};
+
 struct ipq_eth_dev {
 	u8			*phy_address;
 	uint			no_of_phys;
@@ -359,6 +371,7 @@ struct ipq_eth_dev {
 	struct eth_dma_regs	*dma_regs_p;
 	struct eth_device *dev;
 	const char phy_name[MDIO_NAME_LEN];
+	struct ipq_forced_mode *forced_params;
 } __attribute__ ((aligned(8)));
 
 struct eth_mac_regs {
