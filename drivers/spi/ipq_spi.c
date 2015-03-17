@@ -690,8 +690,14 @@ static int gsbi_spi_read(struct ipq_spi_slave *ds, u8 *data_buffer,
 	if (state_config)
 		return state_config;
 
-	writel(bytes, ds->regs->qup_mx_output_count);
-	writel(bytes, ds->regs->qup_mx_input_count);
+	/*
+	 * A count of zero implies read data as long as clock is
+	 * supplied. So configure it with zero and read as much
+	 * data as we want. This also helps us while reading data
+	 * that is not aligned to sector address and/or length.
+	 */
+	writel(0, ds->regs->qup_mx_output_count);
+	writel(0, ds->regs->qup_mx_input_count);
 
 	state_config = config_spi_state(ds, SPI_RUN_STATE);
 	if (state_config)
