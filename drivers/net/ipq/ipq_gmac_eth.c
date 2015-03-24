@@ -26,6 +26,7 @@
 			(CONFIG_SYS_CACHELINE_SIZE))
 static struct ipq_eth_dev *ipq_gmac_macs[IPQ_GMAC_NMACS];
 static int (*ipq_switch_init)(ipq_gmac_board_cfg_t *cfg);
+static struct ipq_forced_mode get_params;
 
 void ipq_register_switch(int(*sw_init)(ipq_gmac_board_cfg_t *cfg))
 {
@@ -35,9 +36,30 @@ void ipq_register_switch(int(*sw_init)(ipq_gmac_board_cfg_t *cfg))
 static void config_auto_neg(struct eth_device *dev)
 {
 	struct ipq_eth_dev *priv = dev->priv;
+	int phy_status;
+	int status;
+	u8  phy_addr;
 
-	miiphy_write(priv->phy_name, priv->phy_address[0],
+	if (priv->forced_params->is_forced) {
+		if (priv->forced_params->miiwrite_done) {
+			phy_addr = priv->forced_params->phy_addr;
+			if (priv->forced_params->speed == SPEED_10M) {
+				miiphy_write(priv->phy_name, phy_addr,
+					PHY_CONTROL_REG, FORCE_RATE_10);
+			} else if (priv->forced_params->speed == SPEED_100M) {
+				miiphy_write(priv->phy_name, phy_addr,
+					PHY_CONTROL_REG, FORCE_RATE_100);
+			} else if (priv->forced_params->speed == SPEED_1000M) {
+				miiphy_write(priv->phy_name, phy_addr,
+					PHY_CONTROL_REG, AUTO_NEG_ENABLE);
+			}
+			priv->forced_params->miiwrite_done = 0;
+			mdelay(200);
+		}
+	} else {
+		miiphy_write(priv->phy_name, priv->phy_address[0],
 			PHY_CONTROL_REG, AUTO_NEG_ENABLE);
+	}
 }
 
 static int ipq_phy_link_status(struct eth_device *dev)
@@ -303,11 +325,13 @@ static int ipq_eth_init(struct eth_device *dev, bd_t *this)
 	struct eth_dma_regs *dma_reg = (struct eth_dma_regs *)priv->dma_regs_p;
 	u32 data;
 
-	if (ipq_phy_link_status(dev) != 0) {
-		ipq_info("Mac%x unit failed\n", priv->mac_unit);
-		return -1;
+	if (!(priv->forced_params->is_forced && (priv->mac_unit == GMAC_UNIT2 ||
+						 priv->mac_unit == GMAC_UNIT3))) {
+		if (ipq_phy_link_status(dev) != 0) {
+				ipq_info("Mac%x unit failed\n", priv->mac_unit);
+				return -1;
+		}
 	}
-
 	priv->next_rx = 0;
 	priv->next_tx = 0;
 
@@ -667,7 +691,9 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		ipq_gmac_macs[i]->interface = gmac_cfg->phy;
 		ipq_gmac_macs[i]->phy_address = gmac_cfg->phy_addr.addr;
 		ipq_gmac_macs[i]->no_of_phys = gmac_cfg->phy_addr.count;
-
+		if (get_params.gmac_port == gmac_cfg->unit) {
+			ipq_gmac_macs[i]->forced_params = &get_params;
+		}
 		/* tx/rx Descriptor initialization */
 		if (ipq_gmac_tx_rx_desc_ring(dev[i]->priv) == -1)
 			goto failed;
@@ -675,9 +701,11 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		if ((gmac_cfg->unit == GMAC_UNIT2 ||
 		    gmac_cfg->unit == GMAC_UNIT3) &&
 		    (gmac_cfg->mac_conn_to_phy)) {
-
-			get_phy_speed_duplexity(dev[i]);
-
+			if (get_params.is_forced) {
+				ipq_gmac_macs[i]->speed = get_params.speed;
+			} else {
+				get_phy_speed_duplexity(dev[i]);
+			}
 			switch (ipq_gmac_macs[i]->speed) {
 			case SPEED_1000M:
 				ipq_info("Port:%d speed 1000Mbps\n",
@@ -818,3 +846,65 @@ void ipq_gmac_common_init(ipq_gmac_board_cfg_t *gmac_cfg)
 	 */
 	ipq_gmac_core_reset(gmac_cfg);
 }
+
+static int ipq_eth_unregister()
+{
+	int i;
+	struct eth_device *dev;
+
+	for (i = 0; i < IPQ_GMAC_NMACS; i++) {
+		if (ipq_gmac_macs[i]) {
+			dev = ipq_gmac_macs[i]->dev;
+			eth_unregister(dev);
+		}
+		if (ipq_gmac_macs[i])
+			free(ipq_gmac_macs[i]);
+	}
+
+	return 0;
+}
+
+static int do_force_eth_speed(cmd_tbl_t *cmdtp, int flag, int argc,
+				char *const argv[])
+{
+	int status;
+	int i;
+	int j;
+
+	if (argc != 3)
+		return CMD_RET_USAGE;
+
+	ipq_gmac_board_cfg_t *gmac_tmp_cfg = gboard_param->gmac_cfg;
+	get_params.phy_addr = simple_strtoul(argv[1], NULL, 16);
+
+	for (i = 0; gmac_cfg_is_valid(gmac_tmp_cfg); gmac_tmp_cfg++, i++) {
+		for (j = 0; j < gmac_tmp_cfg->phy_addr.count; j++) {
+			if (gmac_tmp_cfg->phy_addr.addr[j] == get_params.phy_addr) {
+				get_params.gmac_port = gmac_tmp_cfg->unit;
+				break;
+			}
+		}
+	}
+
+	if (strcmp(argv[2], "10") == 0) {
+		get_params.speed = SPEED_10M;
+	} else if (strcmp(argv[2], "100") == 0) {
+		get_params.speed = SPEED_100M;
+	} else if (strcmp(argv[2], "autoneg") == 0) {
+		get_params.speed = SPEED_1000M;
+	} else {
+		return CMD_RET_USAGE;
+	}
+
+	get_params.is_forced = 1;
+	get_params.miiwrite_done = 1;
+	ipq_eth_unregister();
+	status = ipq_gmac_init(gboard_param->gmac_cfg);
+
+	return status;
+}
+
+U_BOOT_CMD(ethspeed, 3, 0, do_force_eth_speed,
+	   "Force ethernet speed to 10/100/autoneg",
+	   "ethspeed {phy addr} {10|100|autoneg} - Force ethernet speed to 10/100/autoneg\n");
+

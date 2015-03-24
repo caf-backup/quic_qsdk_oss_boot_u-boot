@@ -20,6 +20,8 @@
 #define MII_ADDRMSK				(0x1F << 11)
 #define MII_PHY_STAT_SHIFT			(10)
 #define AUTO_NEG_ENABLE				(1 << 12)
+#define FORCE_RATE_10				(0 << 13) | (1 << 15) | (1 << 8)
+#define FORCE_RATE_100				(1 << 13) | (1 << 15) | (1 << 8)
 
 /*
  * Below is "88E1011/88E1011S Integrated 10/100/1000 Gigabit Ethernet Transceiver"
