@@ -701,8 +701,8 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		if ((gmac_cfg->unit == GMAC_UNIT2 ||
 		    gmac_cfg->unit == GMAC_UNIT3) &&
 		    (gmac_cfg->mac_conn_to_phy)) {
-			if (get_params.is_forced) {
-				ipq_gmac_macs[i]->speed = get_params.speed;
+			if (ipq_gmac_macs[i]->forced_params->is_forced) {
+				ipq_gmac_macs[i]->speed = ipq_gmac_macs[i]->forced_params->speed;
 			} else {
 				get_phy_speed_duplexity(dev[i]);
 			}
@@ -870,6 +870,7 @@ static int do_force_eth_speed(cmd_tbl_t *cmdtp, int flag, int argc,
 	int status;
 	int i;
 	int j;
+	int phyaddrfound = 0;
 
 	if (argc != 3)
 		return CMD_RET_USAGE;
@@ -881,9 +882,14 @@ static int do_force_eth_speed(cmd_tbl_t *cmdtp, int flag, int argc,
 		for (j = 0; j < gmac_tmp_cfg->phy_addr.count; j++) {
 			if (gmac_tmp_cfg->phy_addr.addr[j] == get_params.phy_addr) {
 				get_params.gmac_port = gmac_tmp_cfg->unit;
+				phyaddrfound = 1;
 				break;
 			}
 		}
+	}
+	if (phyaddrfound == 0) {
+		ipq_info("Invalid Phy addr configured\n");
+		return CMD_RET_USAGE;
 	}
 
 	if (strcmp(argv[2], "10") == 0) {
@@ -893,6 +899,7 @@ static int do_force_eth_speed(cmd_tbl_t *cmdtp, int flag, int argc,
 	} else if (strcmp(argv[2], "autoneg") == 0) {
 		get_params.speed = SPEED_1000M;
 	} else {
+		ipq_info("Invalid speed settings configured\n");
 		return CMD_RET_USAGE;
 	}
 
