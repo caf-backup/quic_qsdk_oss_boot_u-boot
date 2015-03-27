@@ -973,6 +973,21 @@ int usb_new_device(struct usb_device *dev)
 
 	tmp = sizeof(dev->descriptor);
 
+	/*
+	 * Full speed devices may have a max packet size greater
+	 * than 8 bytes, but the USB core doesn't know that until
+	 * it reads the first 8 bytes of the descriptor. So get
+	 * the first 8 bytes to identify the max packet size.
+	 */
+	if (dev->speed == USB_SPEED_FULL) {
+		err = usb_get_descriptor(dev, USB_DT_DEVICE, 0, tmpbuf, 8);
+		if (err < 8) {
+			printf("unable to get device descriptor (error=%d)\n",
+			       err);
+			return 1;
+		}
+		memcpy(&dev->descriptor, tmpbuf, 8);
+	}
 	err = usb_get_descriptor(dev, USB_DT_DEVICE, 0,
 				 tmpbuf, sizeof(dev->descriptor));
 	if (err < tmp) {
