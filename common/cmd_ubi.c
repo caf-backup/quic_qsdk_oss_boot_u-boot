@@ -608,8 +608,14 @@ static int do_ubi(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 			argc--;
 		}
 
-		if (argc == 3)
-			return ubi_volume_read(argv[3], (char *)addr, size);
+		if (argc == 3) {
+			err = ubi_volume_read(argv[3], (char *)addr, size);
+			if (err != 0) {
+				ubi_detach_mtd_dev(ubi_dev.nr, 1);
+				put_mtd_device(ubi_dev.mtd_info);
+			}
+			return err;
+		}
 	}
 
 	printf("Please see usage\n");
