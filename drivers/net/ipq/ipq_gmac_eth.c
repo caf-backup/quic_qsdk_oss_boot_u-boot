@@ -629,6 +629,8 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 	struct eth_device *dev[IPQ_GMAC_NMACS];
 	uint clk_div_val;
 	uchar enet_addr[IPQ_GMAC_NMACS * 6];
+	char ethaddr[16] = "ethaddr";
+	char mac[64];
 	int i;
 	int ret;
 
@@ -681,6 +683,21 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 			dev[i]->enetaddr[3],
 			dev[i]->enetaddr[4],
 			dev[i]->enetaddr[5]);
+
+		/*
+		 * Populate the environment with these MAC addresses.
+		 * U-Boot uses these to patch the 'local-mac-address'
+		 * dts entry for the ethernet entries, which in turn
+		 * will be picked up by the HLOS driver
+		 */
+		sprintf(mac, "%x:%x:%x:%x:%x:%x",
+			dev[i]->enetaddr[0], dev[i]->enetaddr[1],
+			dev[i]->enetaddr[2], dev[i]->enetaddr[3],
+			dev[i]->enetaddr[4], dev[i]->enetaddr[5]);
+
+		setenv(ethaddr, mac);
+
+		sprintf(ethaddr, "eth%daddr", (i + 1));
 
 		ipq_gmac_macs[i]->dev = dev[i];
 		ipq_gmac_macs[i]->mac_unit = gmac_cfg->unit;
