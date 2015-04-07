@@ -343,11 +343,11 @@ typedef struct
 } ipq_gmac_desc_t ;
 
 struct ipq_forced_mode {
-	u8 is_forced;
 	u32 speed;
-	u8 phy_addr;
+	u32 phy_addr;
 	u8 miiwrite_done;
 	u8 gmac_port;
+	u8 is_forced;
 };
 
 struct ipq_eth_dev {

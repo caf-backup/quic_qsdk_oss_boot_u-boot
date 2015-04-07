@@ -888,13 +888,18 @@ static int do_force_eth_speed(cmd_tbl_t *cmdtp, int flag, int argc,
 	int i;
 	int j;
 	int phyaddrfound = 0;
+	int phy_addr;
 
 	if (argc != 3)
 		return CMD_RET_USAGE;
 
 	ipq_gmac_board_cfg_t *gmac_tmp_cfg = gboard_param->gmac_cfg;
-	get_params.phy_addr = simple_strtoul(argv[1], NULL, 16);
 
+	if (strict_strtoul(argv[1], 16, &phy_addr) < 0) {
+		ipq_info("Invalid Phy addr configured\n");
+		return CMD_RET_USAGE;
+	}
+	get_params.phy_addr = phy_addr;
 	for (i = 0; gmac_cfg_is_valid(gmac_tmp_cfg); gmac_tmp_cfg++, i++) {
 		for (j = 0; j < gmac_tmp_cfg->phy_addr.count; j++) {
 			if (gmac_tmp_cfg->phy_addr.addr[j] == get_params.phy_addr) {
