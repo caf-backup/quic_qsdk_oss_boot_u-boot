@@ -118,7 +118,8 @@ static int set_fs_bootargs(int *fs_on_nand)
 #define nand_rootfs	"ubi.mtd=" IPQ_ROOT_FS_PART_NAME " root=mtd:ubi_rootfs rootfstype=squashfs"
 #define nor_rootfs	"root=mtd:" IPQ_ROOT_FS_PART_NAME " rootfstype=squashfs"
 
-	if (sfi->flash_type == SMEM_BOOT_SPI_FLASH) {
+	if (sfi->flash_type == SMEM_BOOT_SPI_FLASH &&
+			sfi->flash_secondary_type != SMEM_BOOT_MMC_FLASH) {
 
 		if (sfi->rootfs.offset == 0xBAD0FF5E) {
 			rootfs_part_avail = 0;
@@ -140,7 +141,8 @@ static int set_fs_bootargs(int *fs_on_nand)
 		bootargs = nand_rootfs;
 		*fs_on_nand = 1;
 #ifdef CONFIG_IPQ_MMC
-	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH) {
+	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH ||
+			sfi->flash_secondary_type == SMEM_BOOT_MMC_FLASH) {
 		active_part = get_rootfs_active_partition();
 		if (active_part) {
 			pos = find_part_efi(blk_dev, IPQ_ROOT_FS_ALT_PART_NAME, &disk_info);
@@ -347,7 +349,8 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 			(unsigned int)ubi_get_volume_size("kernel");
 
 #ifdef CONFIG_IPQ_MMC
-	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH) {
+	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH ||
+			sfi->flash_secondary_type == SMEM_BOOT_MMC_FLASH) {
 		active_part = get_rootfs_active_partition();
 		if (active_part) {
 			ret = find_part_efi(blk_dev, "kernel_1", &disk_info);
@@ -563,7 +566,8 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 			"bootm 0x%x\n", sfi->rootfs.size, sfi->rootfs.offset,
 				CONFIG_SYS_LOAD_ADDR, CONFIG_SYS_LOAD_ADDR);
 #ifdef CONFIG_IPQ_MMC
-	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH) {
+	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH ||
+			sfi->flash_secondary_type == SMEM_BOOT_MMC_FLASH) {
 		active_part = get_rootfs_active_partition();
 		if (active_part) {
 			ret = find_part_efi(blk_dev, "kernel_1", &disk_info);
