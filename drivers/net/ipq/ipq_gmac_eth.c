@@ -667,13 +667,11 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		 * is invalid.
 		 */
 		if ((ret < 0) ||
-		    (!is_valid_ether_addr(&enet_addr[gmac_cfg->unit * 6]))) {
+		    (!is_valid_ether_addr(&enet_addr[i * 6]))) {
 			memcpy(&dev[i]->enetaddr[0], ipq_def_enetaddr, 6);
 			dev[i]->enetaddr[5] = gmac_cfg->unit & 0xff;
 		} else {
-			memcpy(&dev[i]->enetaddr[0],
-			       &enet_addr[gmac_cfg->unit * 6],
-			       6);
+			memcpy(&dev[i]->enetaddr[0], &enet_addr[i * 6], 6);
 		}
 
 		ipq_info("MAC%x addr:%x:%x:%x:%x:%x:%x\n",
