@@ -182,12 +182,14 @@ static uint32_t inline clk_is_dummy(void)
 typedef struct {
 	uint8_t	nss[16 * 1024 * 1024];
 	uint8_t	smem[2 * 1024 * 1024];
+#ifdef CONFIG_IPQ_APPSBL_DLOAD
 	uint8_t	uboot[1 * 1024 * 1024];
 	uint8_t	nsstcmdump[128 * 1024];
 	uint8_t sbl3[384 * 1024];
 	uint8_t plcfwdump[512*1024];
 	uint8_t wlanfwdump[(1 * 1024 * 1024) - GENERATED_GBL_DATA_SIZE];
 	uint8_t init_stack[GENERATED_GBL_DATA_SIZE];
+#endif
 } __attribute__ ((__packed__)) ipq_mem_reserve_t;
 
 /* Convenience macros for the above convenience structure :-) */
