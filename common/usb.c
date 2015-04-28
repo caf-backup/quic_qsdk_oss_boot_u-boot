@@ -980,7 +980,7 @@ int usb_new_device(struct usb_device *dev)
 	 * the first 8 bytes to identify the max packet size.
 	 */
 	if (dev->speed == USB_SPEED_FULL) {
-		err = usb_get_descriptor(dev, USB_DT_DEVICE, 0, tmpbuf, PACKET_SIZE_8);
+		err = usb_get_descriptor(dev, USB_DT_DEVICE, 0, tmpbuf, 8);
 		if (err < 8) {
 			printf("unable to get device descriptor (error=%d)\n",
 			       err);
