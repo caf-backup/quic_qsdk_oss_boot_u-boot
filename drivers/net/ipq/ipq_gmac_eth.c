@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012 - 2015 The Linux Foundation. All rights reserved.
  */
 
 #include <common.h>
@@ -757,7 +757,7 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 
 		eth_register(dev[i]);
 
-		if (!sw_init_done) {
+		if (!sw_init_done && ipq_switch_init) {
 			if (ipq_switch_init(gmac_cfg) == 0) {
 				sw_init_done = 1;
 			} else {
