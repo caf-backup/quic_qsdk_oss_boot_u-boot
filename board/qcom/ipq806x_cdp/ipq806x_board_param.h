@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -152,6 +152,37 @@ gpio_func_data_t gmac1_gpio[] = {
 		.pull = GPIO_NO_PULL,
 		.drvstr = GPIO_8MA,
 		.oe = GPIO_OE_ENABLE
+	},
+};
+
+gpio_func_data_t gmac3_gpio[] = {
+	{
+		.gpio = 0,
+		.func = 1,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_8MA,
+		.oe = GPIO_OE_DISABLE
+	},
+	{
+		.gpio = 1,
+		.func = 1,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_8MA,
+		.oe = GPIO_OE_ENABLE
+	},
+	{
+		.gpio = 2,
+		.func = 0,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_8MA,
+		.oe = GPIO_OE_DISABLE
+	},
+	{
+		.gpio = 32,
+		.func = 0,
+		.pull = GPIO_PULL_UP,
+		.drvstr = GPIO_8MA,
+		.oe = GPIO_OE_DISABLE
 	},
 };
 
@@ -1193,6 +1224,76 @@ board_ipq806x_params_t board_params[] = {
 		.gmac_cfg = {
 			gmac_board_cfg(0, 0, QSGMII, 0,
 			0, 0, 1, 4),
+			gmac_board_cfg_invalid(),
+			gmac_board_cfg_invalid(),
+			gmac_board_cfg_invalid(),
+		},
+		.flashdesc = NAND_NOR,
+		.flash_param = {
+			.mode = NOR_SPI_MODE_0,
+			.bus_number = GSBI_BUS_5,
+			.chip_select = SPI_CS_0,
+			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
+		},
+		.dbg_uart_gpio = {
+			{
+				.gpio = 10,
+				.func = 1,
+				.pull = GPIO_NO_PULL,
+				.drvstr = GPIO_12MA,
+				.oe = GPIO_OE_ENABLE
+			},
+			{
+				.gpio = 11,
+				.func = 1,
+				.pull = GPIO_NO_PULL,
+				.drvstr = GPIO_12MA,
+				.oe = GPIO_OE_ENABLE
+			},
+		},
+#ifdef CONFIG_IPQ806X_I2C
+		.i2c_gsbi = GSBI_4,
+		.i2c_gsbi_base = I2C_GSBI4_BASE,
+		.i2c_mnd_value = { 1, 4, 2 },
+		.i2c_gpio = {
+			{
+				.gpio = 13,
+				.func = 1,
+				.pull = GPIO_NO_PULL,
+				.drvstr = GPIO_12MA,
+				.oe = GPIO_OE_ENABLE
+			},
+			{
+				.gpio = 12,
+				.func = 1,
+				.pull = GPIO_NO_PULL,
+				.drvstr = GPIO_12MA,
+				.oe = GPIO_OE_ENABLE
+			},
+		},
+#endif
+#ifdef CONFIG_IPQ806X_PCI
+		.pcie_cfg = {
+			pcie_board_cfg(0),
+			pcie_board_cfg(1),
+			pcie_board_cfg(2),
+		}
+#endif /* CONFIG_IPQ806X_PCI */
+	},
+	{
+		.machid = MACH_TYPE_IPQ806X_AK01_1XX,
+		.ddr_size = (256 << 20),
+		.uart_gsbi = GSBI_4,
+		.uart_gsbi_base = UART_GSBI4_BASE,
+		.uart_dm_base = UART4_DM_BASE,
+		.uart_mnd_value = { 12, 625, 313 },
+		.usb_core_mnd_value = { 1, 5, 32 },
+		.usb_utmi_mnd_value = { 1, 40, 1 },
+		.gmac_gpio_count = ARRAY_SIZE(gmac3_gpio),
+		.gmac_gpio = gmac3_gpio,
+		.gmac_cfg = {
+			gmac_board_cfg(3, 1, SGMII, 0,
+			0, 1, 1, 5),
 			gmac_board_cfg_invalid(),
 			gmac_board_cfg_invalid(),
 			gmac_board_cfg_invalid(),

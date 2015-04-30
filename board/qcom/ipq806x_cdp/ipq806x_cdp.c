@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -614,6 +614,9 @@ int board_eth_init(bd_t *bis)
 	switch (gboard_param->machid) {
 	case MACH_TYPE_IPQ806X_AP160_2XX:
 		ipq_register_switch(ipq_qca8511_init);
+		break;
+	case MACH_TYPE_IPQ806X_AK01_1XX:
+		ipq_register_switch(NULL);
 		break;
 	default:
 		ipq_register_switch(ipq_athrs17_init);
