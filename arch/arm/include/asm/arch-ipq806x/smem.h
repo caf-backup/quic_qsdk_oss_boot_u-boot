@@ -121,5 +121,6 @@ extern ipq_smem_bootconfig_v2_info_t ipq_smem_bootconfig_v2_info;
 int smem_bootconfig_info(void);
 unsigned int get_rootfs_active_partition(void);
 unsigned int get_mibib_active_partition(void);
+char *ipq_smem_part_to_mtdparts(char *mtdid);
 
 #endif

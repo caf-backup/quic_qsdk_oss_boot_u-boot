@@ -271,6 +271,8 @@ typedef struct {
 #define CONFIG_IPQ_NAND_NAND_INFO_IDX	0
 #define CONFIG_IPQ_SPI_NAND_INFO_IDX	1
 
+#define CONFIG_FDT_FIXUP_PARTITIONS
+
 /*
  * Expose SPI driver as a pseudo NAND driver to make use
  * of U-Boot's MTD framework.

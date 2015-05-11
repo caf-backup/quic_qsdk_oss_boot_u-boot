@@ -13,6 +13,8 @@
 
 #include <common.h>
 #include <linux/mtd/ipq_nand.h>
+#include <mtd_node.h>
+#include <jffs2/load_kernel.h>
 #include <asm/arch-ipq806x/gpio.h>
 #include <asm/global_data.h>
 #include <asm/io.h>
@@ -715,6 +717,32 @@ void board_mmc_deinit(void)
 #endif
 
 #ifdef CONFIG_OF_BOARD_SETUP
+void ipq_fdt_fixup_mtdparts(void *blob, struct node_info *ni, int idx)
+{
+	struct mtd_device *dev;
+	char *parts;
+	int noff;
+
+	parts = getenv("mtdparts");
+	if (!parts)
+		return;
+
+	if (mtdparts_init() != 0)
+		return;
+
+	noff = fdt_node_offset_by_compatible(blob, -1, ni->compat);
+	while (noff != -FDT_ERR_NOTFOUND) {
+		dev = device_find(ni->type, idx);
+		if (dev) {
+			if (fdt_node_set_part_info(blob, noff, dev))
+				return; /* return on error */
+		}
+
+		/* Jump to next flash node */
+		noff = fdt_node_offset_by_compatible(blob, noff,
+						     ni->compat);
+	}
+}
 /*
  * For newer kernel that boot with device tree (3.14+), all of memory is
  * described in the /memory node, including areas that the kernel should not be
@@ -727,8 +755,19 @@ void ft_board_setup(void *blob, bd_t *bd)
 {
 	u64 memory_start = CONFIG_SYS_SDRAM_BASE;
 	u64 memory_size = gboard_param->ddr_size;
+	char *mtdparts = ipq_smem_part_to_mtdparts("mtdparts=nand0:-@0(full);nand1");
+	struct node_info nodes[] = {
+		{ "s25fl256s1", MTD_DEV_TYPE_NAND },
+	};
 
 	fdt_fixup_memory_banks(blob, &memory_start, &memory_size, 1);
+
+	printf("mtdparts = %s\n", mtdparts);
+
+	setenv("mtdids", "nand0=nand0,nand1=nand1");
+	setenv("mtdparts", mtdparts);
+
+	ipq_fdt_fixup_mtdparts(blob, nodes, 1);
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 
