@@ -26,6 +26,7 @@
 #include <malloc.h>
 #include <stdio_dev.h>
 #include <exports.h>
+#include <watchdog.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -459,6 +460,7 @@ static int ctrlc_disabled = 0;	/* see disable_ctrl() */
 static int ctrlc_was_pressed = 0;
 int ctrlc(void)
 {
+	WATCHDOG_RESET();
 	if (!ctrlc_disabled && gd->have_console) {
 		if (tstc()) {
 			switch (getc()) {
