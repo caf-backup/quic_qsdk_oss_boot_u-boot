@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  */
 
 #include <common.h>
@@ -722,6 +722,10 @@ static int gsbi_spi_read(struct ipq_spi_slave *ds, u8 *data_buffer,
 					SPI_INPUT_BLOCK_SIZE : read_bytes);
 
 			for (i = 0; i < fifo_count; i++) {
+				if (ctrlc()) {
+					putc ('\n');
+					return 1;
+				}
 				*data_buffer = spi_read_byte(ds);
 				data_buffer++;
 				read_bytes--;
@@ -740,6 +744,10 @@ static int gsbi_spi_read(struct ipq_spi_slave *ds, u8 *data_buffer,
 					SPI_OUTPUT_BLOCK_SIZE : read_bytes);
 
 			for (i = 0; i < fifo_count; i++) {
+				if (ctrlc()) {
+					putc ('\n');
+					return 1;
+				}
 				/*
 				 * Write dummy data byte for the device
 				 * to shift in actual data. Most of the SPI devices
@@ -829,6 +837,10 @@ static int gsbi_spi_write(struct ipq_spi_slave *ds, const u8 *cmd_buffer,
 
 			for (i = 0; i < fifo_count; i++) {
 				/* Write actual data to output FIFO */
+				if (ctrlc()) {
+					putc ('\n');
+					return 1;
+				}
 				spi_write_byte(ds, *cmd_buffer);
 				cmd_buffer++;
 				write_len--;
@@ -848,6 +860,10 @@ static int gsbi_spi_write(struct ipq_spi_slave *ds, const u8 *cmd_buffer,
 				fifo_count = read_len;
 
 			for (i = 0; i < fifo_count; i++) {
+				if (ctrlc()) {
+					putc ('\n');
+					return 1;
+				}
 				/* Read dummy data for the data written */
 				(void)spi_read_byte(ds);
 
