@@ -239,11 +239,11 @@ unsigned int get_rootfs_active_partition(void)
 			&ipq_smem_bootconfig_v2_info, sizeof(ipq_smem_bootconfig_v2_info_t));
 
 		if (ret != 0)
-			return -ENOMSG;
+			return 0;
 
 		if ((ipq_smem_bootconfig_v2_info.magic_start != SMEM_DUAL_BOOTINFO_MAGIC_START)
 			|| (ipq_smem_bootconfig_v2_info.magic_end != SMEM_DUAL_BOOTINFO_MAGIC_END))
-			return -ENOMSG;
+			return 0;
 
 		for (i = 0; i < ipq_smem_bootconfig_v2_info.numaltpart; i++) {
 			if (strncmp("rootfs", ipq_smem_bootconfig_v2_info.per_part_entry[i].name,
@@ -255,7 +255,7 @@ unsigned int get_rootfs_active_partition(void)
 	}
 
 	if (ipq_smem_bootconfig_info.magic != _SMEM_DUAL_BOOTINFO_MAGIC)
-		return -ENOMSG;
+		return 0;
 
 	for (i = 0; i < ipq_smem_bootconfig_info.numaltpart; i++) {
 		if (strncmp("rootfs", ipq_smem_bootconfig_info.per_part_entry[i].name,
