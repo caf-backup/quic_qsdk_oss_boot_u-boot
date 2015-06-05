@@ -219,6 +219,10 @@ int board_init()
 	} else if (sfi->flash_type == SMEM_BOOT_SPI_FLASH) {
 		nand_env_device = CONFIG_IPQ_SPI_NAND_INFO_IDX;
 #ifdef CONFIG_IPQ_MMC
+		if (gd->bd->bi_arch_number == MACH_TYPE_IPQ806X_AP145_1XX) {
+			gboard_param->emmc_gpio = emmc1_gpio;
+			gboard_param->emmc_gpio_count = ARRAY_SIZE(emmc1_gpio);
+		}
 	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH) {
 		gboard_param->emmc_gpio = emmc1_gpio;
 		gboard_param->emmc_gpio_count = ARRAY_SIZE(emmc1_gpio);
@@ -452,6 +456,9 @@ void ipq_get_part_details(void)
 	int ret, i;
 	uint32_t start;		/* block number */
 	uint32_t size;		/* no. of blocks */
+#ifdef CONFIG_IPQ_MMC
+	struct mmc *mmc;
+#endif
 
 	ipq_smem_flash_info_t *smem = &ipq_smem_flash_info;
 
@@ -467,6 +474,15 @@ void ipq_get_part_details(void)
 	for (i = 0; i < ARRAY_SIZE(entries); i++) {
 		ret = smem_getpart(entries[i].name, &start, &size);
 		if (ret < 0) {
+#ifdef CONFIG_IPQ_MMC
+			mmc = find_mmc_device(mmc_host.dev_num);
+
+			if (mmc)
+				smem->flash_secondary_type = SMEM_BOOT_MMC_FLASH;
+			else
+#endif
+				smem->flash_secondary_type = SMEM_BOOT_NAND_FLASH;
+
 			ipq_part_entry_t *part = entries[i].part;
 			printf("cdp: get part failed for %s\n", entries[i].name);
 			part->offset = 0xBAD0FF5E;
