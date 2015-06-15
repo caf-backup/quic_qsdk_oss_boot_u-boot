@@ -164,6 +164,15 @@ gpio_func_data_t storm_switch_gpio = {
 	.oe = GPIO_OE_ENABLE
 };
 
+gpio_func_data_t reset_s17_gpio = {
+	.gpio = 63,
+	.func = 0,
+	.out = GPIO_OUTPUT,
+	.pull = GPIO_PULL_DOWN,
+	.drvstr = GPIO_8MA,
+	.oe = GPIO_OE_ENABLE
+};
+
 #ifdef CONFIG_IPQ806X_PCI
 /* Address of PCIE20 PARF */
 #define PCIE20_0_PARF_PHYS      0x1b600000
@@ -844,6 +853,7 @@ board_ipq806x_params_t board_params[] = {
 			gmac_board_cfg_invalid(),
 		},
 		.flashdesc = NAND_NOR,
+		.reset_switch_gpio = &reset_s17_gpio,
 		.flash_param = {
 			.mode =	NOR_SPI_MODE_0,
 			.bus_number = GSBI_BUS_5,
@@ -915,6 +925,7 @@ board_ipq806x_params_t board_params[] = {
 			gmac_board_cfg_invalid(),
 		},
 		.flashdesc = NAND_NOR,
+		.reset_switch_gpio = &reset_s17_gpio,
 		.flash_param = {
 			.mode =	NOR_SPI_MODE_0,
 			.bus_number = GSBI_BUS_5,

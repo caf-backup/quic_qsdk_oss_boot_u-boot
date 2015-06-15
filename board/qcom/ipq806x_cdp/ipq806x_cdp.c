@@ -389,6 +389,13 @@ int checkboard(void)
 
 void reset_cpu(ulong addr)
 {
+	gpio_func_data_t *gpio = gboard_param->reset_switch_gpio;
+
+	if (gpio) {
+		gpio_tlmm_config(gpio->gpio, gpio->func, gpio->out,
+				gpio->pull, gpio->drvstr, gpio->oe);
+	};
+
 	printf("\nResetting with watch dog!\n");
 
 	writel(0, APCS_WDT0_EN);
