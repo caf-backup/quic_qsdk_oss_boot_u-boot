@@ -12,6 +12,7 @@
 #include <malloc.h>
 #include <phy.h>
 #include <miiphy.h>
+#include <linux/compat.h>
 #include <asm/arch-ipq806x/nss/clock.h>
 #include <asm/arch-ipq806x/nss/nss_reg.h>
 #include <asm/arch-ipq806x/gpio.h>
@@ -27,6 +28,7 @@
 static struct ipq_eth_dev *ipq_gmac_macs[IPQ_GMAC_NMACS];
 static int (*ipq_switch_init)(ipq_gmac_board_cfg_t *cfg);
 static struct ipq_forced_mode get_params;
+static struct bitbang_nodes *bb_nodes[IPQ_GMAC_NMACS];
 
 void ipq_register_switch(int(*sw_init)(ipq_gmac_board_cfg_t *cfg))
 {
@@ -752,8 +754,15 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		ipq_gmac_mii_clk_init(ipq_gmac_macs[i], clk_div_val, gmac_cfg);
 
 		strcpy(ipq_gmac_macs[i]->phy_name, gmac_cfg->phy_name);
-
-		ipq_phy_mdio_init(gmac_cfg->phy_name);
+		bb_nodes[i] = malloc(sizeof(struct bitbang_nodes));
+		if (bb_nodes[i] == NULL)
+			goto failed;
+		memset(bb_nodes[i], 0, sizeof(struct bitbang_nodes));
+		bb_nodes[i]->mdio = gboard_param->gmac_gpio[0].gpio;
+		bb_nodes[i]->mdc = gboard_param->gmac_gpio[1].gpio;
+		bb_miiphy_buses[i].priv = bb_nodes[i];
+		strcpy(bb_miiphy_buses[i].name, gmac_cfg->phy_name);
+		miiphy_register(bb_miiphy_buses[i].name, bb_miiphy_read, bb_miiphy_write);
 
 		eth_register(dev[i]);
 
@@ -770,6 +779,8 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 
 failed:
 	for (i = 0; i < IPQ_GMAC_NMACS; i++) {
+		if (bb_nodes[i])
+			free(bb_nodes[i]);
 		if (dev[i]) {
 			eth_unregister(dev[i]);
 			free(dev[i]);
@@ -862,12 +873,117 @@ void ipq_gmac_common_init(ipq_gmac_board_cfg_t *gmac_cfg)
 	ipq_gmac_core_reset(gmac_cfg);
 }
 
+static int ipq_eth_bb_init(struct bb_miiphy_bus *bus)
+{
+	return 0;
+}
+
+static int ipq_eth_bb_mdio_active(struct bb_miiphy_bus *bus)
+{
+	struct bitbang_nodes *bb_node = bus->priv;
+
+	gpio_tlmm_config(bb_node->mdio, 0,
+			GPIO_OUTPUT, GPIO_NO_PULL, GPIO_8MA, 1);
+	gpio_tlmm_config(bb_node->mdc, 0,
+			GPIO_OUTPUT, GPIO_NO_PULL, GPIO_8MA, 1);
+
+	return 0;
+}
+
+static int ipq_eth_bb_mdio_tristate(struct bb_miiphy_bus *bus)
+{
+	struct bitbang_nodes *bb_node = bus->priv;
+
+	gpio_tlmm_config(bb_node->mdio, 0,
+			GPIO_INPUT, GPIO_NO_PULL, GPIO_8MA, 0);
+	gpio_tlmm_config(bb_node->mdc, 0,
+			GPIO_OUTPUT, GPIO_NO_PULL, GPIO_8MA, 1);
+
+	return 0;
+}
+
+static int ipq_eth_bb_set_mdio(struct bb_miiphy_bus *bus, int v)
+{
+	struct bitbang_nodes *bb_node = bus->priv;
+
+	gpio_set_value(bb_node->mdio, v);
+
+	return 0;
+}
+
+static int ipq_eth_bb_get_mdio(struct bb_miiphy_bus *bus, int *v)
+{
+	struct bitbang_nodes *bb_node = bus->priv;
+
+	*v = gpio_get_value(bb_node->mdio);
+
+	return 0;
+}
+
+static int ipq_eth_bb_set_mdc(struct bb_miiphy_bus *bus, int v)
+{
+	struct bitbang_nodes *bb_node = bus->priv;
+
+	gpio_set_value(bb_node->mdc, v);
+
+	return 0;
+}
+
+static int ipq_eth_bb_delay(struct bb_miiphy_bus *bus)
+{
+	ndelay(350);
+
+	return 0;
+}
+
+struct bb_miiphy_bus bb_miiphy_buses[] = {
+	{
+		.init		= ipq_eth_bb_init,
+		.mdio_active	= ipq_eth_bb_mdio_active,
+		.mdio_tristate	= ipq_eth_bb_mdio_tristate,
+		.set_mdio	= ipq_eth_bb_set_mdio,
+		.get_mdio	= ipq_eth_bb_get_mdio,
+		.set_mdc	= ipq_eth_bb_set_mdc,
+		.delay		= ipq_eth_bb_delay,
+	},
+	{
+		.init		= ipq_eth_bb_init,
+		.mdio_active	= ipq_eth_bb_mdio_active,
+		.mdio_tristate	= ipq_eth_bb_mdio_tristate,
+		.set_mdio	= ipq_eth_bb_set_mdio,
+		.get_mdio	= ipq_eth_bb_get_mdio,
+		.set_mdc	= ipq_eth_bb_set_mdc,
+		.delay		= ipq_eth_bb_delay,
+	},
+	{
+		.init		= ipq_eth_bb_init,
+		.mdio_active	= ipq_eth_bb_mdio_active,
+		.mdio_tristate	= ipq_eth_bb_mdio_tristate,
+		.set_mdio	= ipq_eth_bb_set_mdio,
+		.get_mdio	= ipq_eth_bb_get_mdio,
+		.set_mdc	= ipq_eth_bb_set_mdc,
+		.delay		= ipq_eth_bb_delay,
+	},
+	{
+		.init		= ipq_eth_bb_init,
+		.mdio_active	= ipq_eth_bb_mdio_active,
+		.mdio_tristate	= ipq_eth_bb_mdio_tristate,
+		.set_mdio	= ipq_eth_bb_set_mdio,
+		.get_mdio	= ipq_eth_bb_get_mdio,
+		.set_mdc	= ipq_eth_bb_set_mdc,
+		.delay		= ipq_eth_bb_delay,
+	},
+};
+int bb_miiphy_buses_num = ARRAY_SIZE(bb_miiphy_buses);
+
 static int ipq_eth_unregister()
 {
 	int i;
 	struct eth_device *dev;
 
 	for (i = 0; i < IPQ_GMAC_NMACS; i++) {
+		if (bb_nodes[i])
+			free(bb_nodes[i]);
 		if (ipq_gmac_macs[i]) {
 			dev = ipq_gmac_macs[i]->dev;
 			eth_unregister(dev);
