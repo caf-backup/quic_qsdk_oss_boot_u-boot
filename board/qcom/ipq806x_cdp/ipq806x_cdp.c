@@ -163,6 +163,10 @@ void hw_watchdog_reset(void)
 {
 	writel(1, APCS_WDT0_RST);
 }
+void watchdog_disable(void)
+{
+	writel(0, APCS_WDT0_EN);
+}
 #endif
 
 int board_init()
@@ -171,7 +175,7 @@ int board_init()
 	uint32_t start_blocks;
 	uint32_t size_blocks;
 	loff_t board_env_size;
-
+	watchdog_disable();
 #ifdef CONFIG_IPQ_REPORT_L2ERR
 	u32 l2esr;
 
