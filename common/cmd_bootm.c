@@ -314,7 +314,7 @@ static int bootm_start(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 #define BOOTM_ERR_RESET		-1
 #define BOOTM_ERR_OVERLAP	-2
 #define BOOTM_ERR_UNIMPLEMENTED	-3
-static int bootm_load_os(image_info_t os, ulong *load_end, int boot_progress)
+int bootm_load_os(image_info_t os, ulong *load_end, int boot_progress)
 {
 	uint8_t comp = os.comp;
 	ulong load = os.load;
@@ -329,6 +329,11 @@ static int bootm_load_os(image_info_t os, ulong *load_end, int boot_progress)
 #endif /* defined(CONFIG_LZMA) || defined(CONFIG_LZO) */
 
 	const char *type_name = genimg_get_type_name(os.type);
+#if defined(CONFIG_DTB_COMPRESSION)
+	if(os.type == IH_TYPE_FLATDT) {
+		unc_len = CONFIG_DTB_LOAD_MAXLEN;
+	}
+#endif
 
 	switch (comp) {
 	case IH_COMP_NONE:
@@ -425,8 +430,10 @@ static int bootm_load_os(image_info_t os, ulong *load_end, int boot_progress)
 	flush_cache(load, (*load_end - load) * sizeof(ulong));
 #endif
 	puts("OK\n");
-	debug("   kernel loaded at 0x%08lx, end = 0x%08lx\n", load, *load_end);
-	bootstage_mark(BOOTSTAGE_ID_KERNEL_LOADED);
+	debug("   %s loaded at 0x%08lx, end = 0x%08lx\n", type_name, load, *load_end);
+	if(os.type == IH_TYPE_KERNEL) {
+		bootstage_mark(BOOTSTAGE_ID_KERNEL_LOADED);
+	}
 
 	if (!no_overlap && (load < blob_end) && (*load_end > blob_start)) {
 		debug("images.os.start = 0x%lX, images.os.end = 0x%lx\n",
