@@ -57,6 +57,9 @@
 
 static int fit_check_ramdisk(const void *fit, int os_noffset,
 		uint8_t arch, int verify);
+#if defined(CONFIG_DTB_COMPRESSION)
+extern int bootm_load_os(image_info_t os, ulong *load_end, int boot_progress);
+#endif
 #endif
 
 #ifdef CONFIG_CMD_BDI
@@ -1217,10 +1220,12 @@ static int fit_check_fdt(const void *fit, int fdt_noffset, int verify)
 		return 0;
 	}
 
+#if !defined(CONFIG_DTB_COMPRESSION)
 	if (!fit_image_check_comp(fit, fdt_noffset, IH_COMP_NONE)) {
 		fdt_error("FDT image is compressed");
 		return 0;
 	}
+#endif
 
 	return 1;
 }
@@ -1400,6 +1405,10 @@ int boot_get_fdt(int flag, int argc, char * const argv[],
 	int		fdt_noffset;
 	const void	*data;
 	size_t		size;
+#if defined(CONFIG_DTB_COMPRESSION)
+	image_info_t	fdt = {0};
+#endif
+	uint8_t	comp_type = IH_COMP_NONE;
 #endif
 
 	*of_flat_tree = NULL;
@@ -1595,10 +1604,31 @@ int boot_get_fdt(int flag, int argc, char * const argv[],
 					goto error;
 				}
 
-				/* verift that image data is a proper FDT blob */
-				if (fdt_check_header((char *)data) != 0) {
-					fdt_error("Subimage data is not a FTD");
-					goto error;
+#if defined(CONFIG_DTB_COMPRESSION)
+				if (!fit_image_get_comp(fit_hdr, fdt_noffset,
+						&comp_type) &&
+					(comp_type != IH_COMP_NONE)) {
+					printf("   %s FDT image found\n",
+						genimg_get_comp_name(comp_type));
+					if (fit_image_get_load(fit_hdr,
+						fdt_noffset,
+						&load_start) != 0) {
+						printf("ERROR: load address not found for compressed FDT..\n");
+						goto error;
+					} else {
+						fdt.comp = comp_type;
+						fdt.type = IH_TYPE_FLATDT;
+						printf("   FDT load address is: 0x%08x\n",
+							 (unsigned int)load_start);
+					}
+				}
+#endif
+				if (comp_type == IH_COMP_NONE) {
+					/* verify that image data is a proper FDT blob */
+					if (fdt_check_header((char *)data) != 0) {
+						fdt_error("Subimage data is not a FTD");
+						goto error;
+					}
 				}
 
 				/*
@@ -1623,6 +1653,23 @@ int boot_get_fdt(int flag, int argc, char * const argv[],
 							(ulong)data,
 							load_start);
 
+#if defined(CONFIG_DTB_COMPRESSION)
+					if (comp_type != IH_COMP_NONE) {
+						fdt.image_start = (ulong)data;
+						fdt.image_len = size;
+						fdt.load = load_start;
+						if (!bootm_load_os(fdt,
+								&load_end, 1)) {
+							/* verify that uncompressed image data is a proper FDT blob */
+							if (fdt_check_header((char *)
+								load_start) != 0) {
+								fdt_error("Uncompresed FIT Subimage data is not a FDT");
+								goto error;
+							}
+						}
+					}
+					else
+#endif
 					memmove((void *)load_start,
 							(void *)data, size);
 
