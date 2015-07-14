@@ -204,6 +204,23 @@ gpio_func_data_t reset_s17_gpio = {
 	.oe = GPIO_OE_ENABLE
 };
 
+gpio_func_data_t ar8033_gpio[] = {
+	{
+		.gpio = 2,
+		.func = 0,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_8MA,
+		.oe = GPIO_OE_DISABLE
+	},
+	{
+		.gpio = 66,
+		.func = 0,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_16MA,
+		.oe = GPIO_OE_DISABLE
+	},
+};
+
 #ifdef CONFIG_IPQ806X_PCI
 /* Address of PCIE20 PARF */
 #define PCIE20_0_PARF_PHYS      0x1b600000
@@ -1232,6 +1249,7 @@ board_ipq806x_params_t board_params[] = {
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
 		.gmac_gpio = gmac1_gpio,
+		.ar8033_gpio = ar8033_gpio,
 		.gmac_cfg = {
 			gmac_board_cfg(0, 0, QSGMII, 0,
 			0, 0, 1, 4),

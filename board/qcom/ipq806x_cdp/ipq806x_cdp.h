@@ -141,6 +141,7 @@ typedef struct {
 	ipq_gmac_board_cfg_t gmac_cfg[IPQ_GMAC_NMACS];
 	gpio_func_data_t *switch_gpio;
 	gpio_func_data_t *reset_switch_gpio;
+	gpio_func_data_t *ar8033_gpio;
 	flash_desc flashdesc;
 	spinorflash_params_t flash_param;
 	gpio_func_data_t dbg_uart_gpio[NO_OF_DBG_UART_GPIOS];

@@ -775,6 +775,16 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 			}
 		}
 	}
+	if (gboard_param->ar8033_gpio) {
+		bb_nodes[i] = malloc(sizeof(struct bitbang_nodes));
+		memset(bb_nodes[i], 0, sizeof(struct bitbang_nodes));
+		bb_nodes[i]->mdio = gboard_param->ar8033_gpio[0].gpio;
+		bb_nodes[i]->mdc = gboard_param->ar8033_gpio[1].gpio;
+		bb_miiphy_buses[i].priv = bb_nodes[i];
+		strcpy(bb_miiphy_buses[i].name, "8033");
+		miiphy_register(bb_miiphy_buses[i].name, bb_miiphy_read, bb_miiphy_write);
+	}
+
 	return 0;
 
 failed:
