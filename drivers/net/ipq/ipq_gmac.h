@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012 - 2015 The Linux Foundation. All rights reserved.
  */
 
 #ifndef _IPQ_GMAC_H
@@ -349,6 +349,11 @@ struct ipq_forced_mode {
 	u8 gmac_port;
 	u8 is_forced;
 };
+
+struct bitbang_nodes {
+	int mdio;
+	int mdc;
+} __attribute__ ((aligned(8)));
 
 struct ipq_eth_dev {
 	u8			*phy_address;
