@@ -6,6 +6,9 @@
 #include <command.h>
 #include <image.h>
 #include <asm/arch-ipq806x/smem.h>
+#include <asm/sizes.h>
+#include <asm/arch-ipq806x/scm.h>
+#include <asm/arch-ipq806x/iomap.h>
 
 struct dumpinfo_t {
 	char name[16]; /* use only file name in 8.3 format */
@@ -35,12 +38,66 @@ struct dumpinfo_t dumpinfo[] = {
 	{ "RPM_WDT.BIN",  0x0006206C, 0x00000004, 0 },
 	{ "CPU0_WDT.BIN", 0x0208A044, 0x00000004, 0 },
 	{ "CPU1_WDT.BIN", 0x0209A044, 0x00000004, 0 },
-	{ "CPU0_REG.BIN", 0x39013f54, 0x000000AC, 0 },
+	{ "CPU0_REG.BIN", 0x39013ea8, 0x000000AC, 0 },
+	{ "CPU1_REG.BIN", 0x39013f54, 0x000000AC, 0 },
 	{ "WLAN_FW.BIN",  0x41400000, 0x000FFF80, 0 },
 	{ "WLAN_FW_900B.BIN", 0x44000000, 0x00600000, 0 },
 	{ "EBICS0.BIN",   0x40000000, 0x20000000, 0 },
 	{ "EBI1CS1.BIN",  0x60000000, 0x20000000, 0 }
 };
+
+void forever(void) { while (1); }
+/*
+ * Set the cold/warm boot address for one of the CPU cores.
+ */
+int scm_set_boot_addr(void)
+{
+	int ret;
+	struct {
+		unsigned int flags;
+		unsigned long addr;
+	} cmd;
+
+	cmd.addr = (unsigned long)forever;
+	cmd.flags = SCM_FLAG_COLDBOOT_CPU1;
+
+	ret = scm_call(SCM_SVC_BOOT, SCM_BOOT_ADDR,
+			&cmd, sizeof(cmd), NULL, 0);
+	if (ret) {
+		printf("--- %s: scm_call failed ret = %d\n", __func__, ret);
+	}
+
+	return ret;
+}
+
+static int krait_release_secondary(void)
+{
+	writel(0xa4, CPU1_APCS_SAW2_VCTL);
+	barrier();
+	udelay(512);
+
+	writel(0x109, CPU1_APCS_CPU_PWR_CTL);
+	writel(0x101, CPU1_APCS_CPU_PWR_CTL);
+	barrier();
+	udelay(1);
+
+	writel(0x121, CPU1_APCS_CPU_PWR_CTL);
+	barrier();
+	udelay(2);
+
+	writel(0x120, CPU1_APCS_CPU_PWR_CTL);
+	barrier();
+	udelay(2);
+
+	writel(0x100, CPU1_APCS_CPU_PWR_CTL);
+	barrier();
+	udelay(100);
+
+	writel(0x180, CPU1_APCS_CPU_PWR_CTL);
+	barrier();
+
+	return 0;
+}
 
 static int do_dumpipq_data(cmd_tbl_t *cmdtp, int flag, int argc,
 				char *const argv[])
@@ -71,6 +128,12 @@ static int do_dumpipq_data(cmd_tbl_t *cmdtp, int flag, int argc,
 	} else {
 		printf("Env 'dumpdir' not set. Using / dir in TFTP server\n");
 	}
+
+	if (scm_set_boot_addr() == 0) {
+		/* Pull Core-1 out of reset, iff scm call succeeds */
+		krait_release_secondary();
+	}
+
 
 	for (indx = 0; indx < ARRAY_SIZE(dumpinfo); indx++) {
 		printf("\nProcessing %s:", dumpinfo[indx].name);
