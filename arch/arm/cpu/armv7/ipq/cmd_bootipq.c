@@ -26,10 +26,20 @@
 #define CE1_ADM_USAGE		(1)
 #define CE1_RESOURCE		(1)
 
+/*
+ * SOC version type with major number in the upper 16 bits and minor
+ * number in the lower 16 bits.  For example:
+ *   1.0 -> 0x00010000
+ *   2.3 -> 0x00020003
+ */
+#define SOCINFO_VERSION_MAJOR(ver) ((ver & 0xffff0000) >> 16)
+#define SOCINFO_VERSION_MINOR(ver) (ver & 0x0000ffff)
+
 DECLARE_GLOBAL_DATA_PTR;
 static int debug = 0;
 static ipq_smem_flash_info_t *sfi = &ipq_smem_flash_info;
 int ipq_fs_on_nand, rootfs_part_avail = 1;
+static int soc_version = 1;
 extern board_ipq806x_params_t *gboard_param;
 #ifdef CONFIG_IPQ_MMC
 static ipq_mmc *host = &mmc_host;
@@ -415,7 +425,8 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 	if (ret)
 		return CMD_RET_FAILURE;
 
-	snprintf(runcmd, sizeof(runcmd), "bootm 0x%x\n", request);
+	snprintf(runcmd, sizeof(runcmd), "bootm 0x%x%s\n", request,
+		gboard_param->dtb_config_name[SOCINFO_VERSION_MAJOR(soc_version)]);
 
 	if (debug)
 		printf(runcmd);
@@ -456,7 +467,6 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 	unsigned long * dmagic1 = (unsigned long *) 0x2A03F000;
 	unsigned long * dmagic2 = (unsigned long *) 0x2A03F004;
 #endif
-
 	if (argc == 2 && strncmp(argv[1], "debug", 5) == 0)
 		debug = 1;
 
@@ -563,8 +573,9 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 			"set mtdparts mtdparts=nand0:0x%llx@0x%llx(fs),${msmparts} && "
 			"ubi part fs && "
 			"ubi read 0x%x kernel && "
-			"bootm 0x%x\n", sfi->rootfs.size, sfi->rootfs.offset,
-				CONFIG_SYS_LOAD_ADDR, CONFIG_SYS_LOAD_ADDR);
+			"bootm 0x%x%s\n", sfi->rootfs.size, sfi->rootfs.offset,
+				CONFIG_SYS_LOAD_ADDR, CONFIG_SYS_LOAD_ADDR,
+				 gboard_param->dtb_config_name[SOCINFO_VERSION_MAJOR(soc_version)]);
 #ifdef CONFIG_IPQ_MMC
 	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH ||
 			sfi->flash_secondary_type == SMEM_BOOT_MMC_FLASH) {
@@ -583,8 +594,9 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 			if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 				return CMD_RET_FAILURE;
 
-			snprintf(runcmd, sizeof(runcmd),"bootm 0x%x\n",
-						CONFIG_SYS_LOAD_ADDR);
+			snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
+				CONFIG_SYS_LOAD_ADDR,
+				gboard_param->dtb_config_name[SOCINFO_VERSION_MAJOR(soc_version)]);
 		}
 #endif
 	} else {
@@ -596,9 +608,15 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 			/* NOR is treated as psuedo NAND */
 			"set mtdids nand1=nand1 && "
 			"set mtdparts mtdparts=nand1:${msmparts} && "
-			"set autostart yes;"
-			"nboot 0x%x %d 0x%llx", CONFIG_SYS_LOAD_ADDR,
-				nandid, sfi->hlos.offset);
+			"nand read 0x%x 0x%llx 0x%llx",
+			CONFIG_SYS_LOAD_ADDR, sfi->hlos.offset, sfi->hlos.size);
+
+		if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
+			return CMD_RET_FAILURE;
+
+		snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
+			CONFIG_SYS_LOAD_ADDR,
+			gboard_param->dtb_config_name[SOCINFO_VERSION_MAJOR(soc_version)]);
 	}
 
 	if (debug)
@@ -622,6 +640,11 @@ static int do_bootipq(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 	int ret;
 	char buf;
+
+	if(!ipq_smem_get_socinfo_version(&soc_version))
+		debug("Soc version is = %x \n", SOCINFO_VERSION_MAJOR(soc_version));
+	else
+		printf("Cannot get socinfo, using defaults\n");
 
 	ret = scm_call(SCM_SVC_FUSE, QFPROM_IS_AUTHENTICATE_CMD,
 			NULL, 0, &buf, sizeof(char));

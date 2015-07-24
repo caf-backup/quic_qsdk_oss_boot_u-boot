@@ -521,6 +521,7 @@ board_ipq806x_params_t board_params[] = {
 		},
 #endif
 		.clk_dummy = 1,
+		.dtb_config_name[1] = "",
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_DB149,
@@ -592,7 +593,8 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -665,7 +667,8 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-	}
+		},
+		.dtb_config_name[1] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -738,7 +741,8 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -816,7 +820,8 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -887,7 +892,8 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -959,7 +965,9 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "#config@1",
+		.dtb_config_name[2] = "#config@2",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -1031,7 +1039,8 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -1102,7 +1111,9 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "#config@3",
+		.dtb_config_name[2] = "#config@4",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -1173,7 +1184,8 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -1244,7 +1256,9 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "#config@5",
+		.dtb_config_name[2] = "#config@6",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -1315,7 +1329,9 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "#config@7",
+		.dtb_config_name[2] = "#config@8",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -1386,7 +1402,9 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "#config@9",
+		.dtb_config_name[2] = "#config@10",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -1457,7 +1475,9 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
-		}
+		},
+		.dtb_config_name[1] = "#config@11",
+		.dtb_config_name[2] = "#config@12",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
@@ -1502,8 +1522,8 @@ board_ipq806x_params_t board_params[] = {
 				.drvstr = GPIO_12MA,
 				.oe = GPIO_OE_ENABLE
 			},
-		}
-
+		},
+		.dtb_config_name[1] = "",
 	},
 
 };
