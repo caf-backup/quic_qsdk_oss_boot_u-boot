@@ -204,6 +204,15 @@ gpio_func_data_t reset_s17_gpio = {
 	.oe = GPIO_OE_ENABLE
 };
 
+gpio_func_data_t reset_ak01_8033_gpio = {
+	.gpio = 32,
+	.func = 0,
+	.out = GPIO_OUTPUT,
+	.pull = GPIO_PULL_UP,
+	.drvstr = GPIO_12MA,
+	.oe = GPIO_OE_ENABLE
+};
+
 gpio_func_data_t ar8033_gpio[] = {
 	{
 		.gpio = 2,
@@ -1328,6 +1337,7 @@ board_ipq806x_params_t board_params[] = {
 			gmac_board_cfg_invalid(),
 		},
 		.flashdesc = NAND_NOR,
+		.reset_ak01_gmac_gpio = &reset_ak01_8033_gpio,
 		.flash_param = {
 			.mode = NOR_SPI_MODE_0,
 			.bus_number = GSBI_BUS_5,
