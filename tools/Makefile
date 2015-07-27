@@ -88,6 +88,7 @@ OBJ_FILES-$(CONFIG_VIDEO_LOGO) += bmp_logo.o
 NOPED_OBJ_FILES-y += default_image.o
 OBJ_FILES-$(CONFIG_BUILD_ENVCRC) += envcrc.o
 NOPED_OBJ_FILES-y += dumpimage.o
+NOPED_OBJ_FILES-y += sysupgrade.o
 NOPED_OBJ_FILES-y += fit_image.o
 OBJ_FILES-$(CONFIG_CMD_NET) += gen_eth_addr.o
 OBJ_FILES-$(CONFIG_CMD_LOADS) += img2srec.o
@@ -209,6 +210,7 @@ $(obj)dumpimage$(SFX):	$(obj)aisimage.o \
 			$(obj)imximage.o \
 			$(obj)kwbimage.o \
 			$(obj)dumpimage.o \
+			$(obj)sysupgrade.o \
 			$(obj)md5.o \
 			$(obj)omapimage.o \
 			$(obj)os_support.o \
