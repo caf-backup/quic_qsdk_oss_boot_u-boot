@@ -724,7 +724,7 @@ void board_mmc_deinit(void)
 #endif
 
 #ifdef CONFIG_OF_BOARD_SETUP
-void ipq_fdt_fixup_mtdparts(void *blob, struct node_info *ni, int idx)
+void ipq_fdt_fixup_mtdparts(void *blob, struct node_info *ni)
 {
 	struct mtd_device *dev;
 	char *parts;
@@ -737,17 +737,21 @@ void ipq_fdt_fixup_mtdparts(void *blob, struct node_info *ni, int idx)
 	if (mtdparts_init() != 0)
 		return;
 
-	noff = fdt_node_offset_by_compatible(blob, -1, ni->compat);
-	while (noff != -FDT_ERR_NOTFOUND) {
-		dev = device_find(ni->type, idx);
-		if (dev) {
-			if (fdt_node_set_part_info(blob, noff, dev))
-				return; /* return on error */
-		}
+	for (; ni->compat; ni++) {
+		noff = fdt_node_offset_by_compatible(blob, -1, ni->compat);
 
-		/* Jump to next flash node */
-		noff = fdt_node_offset_by_compatible(blob, noff,
-						     ni->compat);
+		while (noff != -FDT_ERR_NOTFOUND) {
+			dev = device_find(ni->type, ni->idx);
+			if (dev) {
+				if (fdt_node_set_part_info(blob, noff, dev)) {
+					return; /* return on error */
+				}
+			}
+
+			/* Jump to next flash node */
+			noff = fdt_node_offset_by_compatible(blob, noff,
+								ni->compat);
+		}
 	}
 }
 
@@ -786,22 +790,29 @@ void ft_board_setup(void *blob, bd_t *bd)
 {
 	u64 memory_start = CONFIG_SYS_SDRAM_BASE;
 	u64 memory_size = gboard_param->ddr_size;
-	char *mtdparts = ipq_smem_part_to_mtdparts("mtdparts=nand0:-@0(full);nand1");
+	ipq_smem_flash_info_t *sfi = &ipq_smem_flash_info;
+	char *mtdparts = NULL;
+
 	struct node_info nodes[] = {
-		{ "s25fl256s1", MTD_DEV_TYPE_NAND },
+		{ "s25fl256s1", MTD_DEV_TYPE_NAND, 1 },
+		{ "qcom,qcom_nand", MTD_DEV_TYPE_NAND, 0 },
+		{ NULL, 0, -1 },
 	};
 
+	if (sfi->flash_type == SMEM_BOOT_NAND_FLASH) {
+		mtdparts = "mtdparts=1ac00000.nand";
+	} else if (sfi->flash_type == SMEM_BOOT_SPI_FLASH) {
+		mtdparts = "mtdparts=nand1";
+	}
+	mtdparts = ipq_smem_part_to_mtdparts(mtdparts);
 	fdt_fixup_memory_banks(blob, &memory_start, &memory_size, 1);
 
-	printf("mtdparts = %s\n", mtdparts);
+	debug("mtdparts = %s\n", mtdparts);
 
-	setenv("mtdids", "nand0=nand0,nand1=nand1");
+	setenv("mtdids", "nand0=1ac00000.nand,nand1=nand1");
 	setenv("mtdparts", mtdparts);
 
-	ipq_fdt_fixup_mtdparts(blob, nodes, 1);
-	if (0 != ipq_fdt_fixup_socinfo(blob)) {
-		printf("ipq: fdt fixup failed for socinfo\n");
-	}
+	ipq_fdt_fixup_mtdparts(blob, nodes);
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 
