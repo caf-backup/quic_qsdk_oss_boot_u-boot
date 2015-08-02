@@ -750,6 +750,30 @@ void ipq_fdt_fixup_mtdparts(void *blob, struct node_info *ni, int idx)
 						     ni->compat);
 	}
 }
+
+int ipq_fdt_fixup_socinfo(void *blob)
+{
+	uint32_t cpu_type;
+	int nodeoff, ret;
+
+	ret = ipq_smem_get_socinfo_cpu_type(&cpu_type);
+	if (ret) {
+		printf("ipq: fdt fixup cannot get socinfo\n");
+		return ret;
+	}
+	nodeoff = fdt_node_offset_by_compatible(blob, -1, "qcom,ipq8064");
+
+	if (nodeoff < 0) {
+		printf("ipq: fdt fixup cannot find compatible node\n");
+		return nodeoff;
+	}
+	ret = fdt_setprop(blob, nodeoff, "cpu_type",
+				&cpu_type, sizeof(cpu_type));
+	if (ret)
+		printf("%s: cannot set cpu type %d\n", __func__, ret);
+	return ret;
+}
+
 /*
  * For newer kernel that boot with device tree (3.14+), all of memory is
  * described in the /memory node, including areas that the kernel should not be
@@ -775,6 +799,9 @@ void ft_board_setup(void *blob, bd_t *bd)
 	setenv("mtdparts", mtdparts);
 
 	ipq_fdt_fixup_mtdparts(blob, nodes, 1);
+	if (0 != ipq_fdt_fixup_socinfo(blob)) {
+		printf("ipq: fdt fixup failed for socinfo\n");
+	}
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 

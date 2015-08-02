@@ -39,11 +39,26 @@
 
 extern int nand_env_device;
 
+#define BUILD_ID_LEN 32
+
+struct ipq_socinfo {
+	unsigned format;
+	unsigned id;
+	unsigned version;
+	char     build_id[BUILD_ID_LEN];
+	unsigned raw_id;
+	unsigned raw_version;
+	unsigned hw_platform;
+	unsigned platform_version;
+	unsigned accessory_chip;
+	unsigned hw_platform_subtype;
+};
+
 typedef enum {
 	SMEM_SPINLOCK_ARRAY = 7,
 	SMEM_AARM_PARTITION_TABLE = 9,
 	SMEM_APPS_BOOT_MODE = 106,
-	SMEM_BOARD_INFO_LOCATION = 137,
+	SMEM_HW_SW_BUILD_ID = 137,
 	SMEM_USABLE_RAM_PARTITION_TABLE = 402,
 	SMEM_POWER_ON_STATUS_INFO = 403,
 	SMEM_RLOCK_AREA = 404,
@@ -479,6 +494,25 @@ char *ipq_smem_part_to_mtdparts(char *mtdid)
 
 	return parts;
 }
+
+int ipq_smem_get_socinfo_cpu_type(uint32_t *cpu_type)
+{
+	int smem_status;
+	struct ipq_socinfo socinfo;
+
+	smem_status = smem_read_alloc_entry(SMEM_HW_SW_BUILD_ID,
+				&socinfo, sizeof(struct ipq_socinfo));
+
+	if (!smem_status) {
+		*cpu_type = socinfo.id;
+		debug("smem: socinfo - cpu type = %d\n",*cpu_type);
+	} else {
+		printf("smem: Get socinfo failed\n");
+	}
+
+	return smem_status;
+}
+
 
 int do_smeminfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {

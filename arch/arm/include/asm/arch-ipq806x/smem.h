@@ -55,6 +55,7 @@ int smem_get_boot_flash(uint32_t *flash_type,
 int smem_getpart(char *name, uint32_t *start, uint32_t *size);
 unsigned int smem_get_board_machtype(void);
 int smem_ram_ptable_init(struct smem_ram_ptable *smem_ram_ptable);
+int ipq_smem_get_socinfo_cpu_type(uint32_t *cpu_type);
 
 typedef struct {
 	loff_t offset;
