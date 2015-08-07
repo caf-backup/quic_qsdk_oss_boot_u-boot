@@ -125,6 +125,7 @@ typedef struct {
 void board_pci_init(void);
 #endif /* CONFIG_IPQ806X_PCI */
 
+#define MAX_SOC_CONFIGS			10
 /* Board specific parameters */
 typedef struct {
 	unsigned int machid;
@@ -159,7 +160,7 @@ typedef struct {
 	gpio_func_data_t *emmc_gpio;
 	unsigned int emmc_gpio_count;
 #endif
-
+	unsigned char *dtb_config_name[MAX_SOC_CONFIGS];
 } __attribute__ ((__packed__)) board_ipq806x_params_t;
 
 extern board_ipq806x_params_t *gboard_param;

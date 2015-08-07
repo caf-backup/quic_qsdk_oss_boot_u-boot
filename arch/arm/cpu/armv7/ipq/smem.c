@@ -513,6 +513,23 @@ int ipq_smem_get_socinfo_cpu_type(uint32_t *cpu_type)
 	return smem_status;
 }
 
+int ipq_smem_get_socinfo_version(uint32_t *version)
+{
+	int smem_status;
+	struct ipq_socinfo socinfo;
+
+	smem_status = smem_read_alloc_entry(SMEM_HW_SW_BUILD_ID,
+				&socinfo, sizeof(struct ipq_socinfo));
+
+	if (!smem_status) {
+		*version = socinfo.version;
+		debug("smem: socinfo - version = 0x%x\n",*version);
+	} else {
+		printf("smem: Get socinfo failed\n");
+	}
+
+	return smem_status;
+}
 
 int do_smeminfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
