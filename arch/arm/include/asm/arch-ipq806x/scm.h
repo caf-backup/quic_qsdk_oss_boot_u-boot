@@ -29,6 +29,8 @@
 
 #define KERNEL_AUTH_CMD			0x7
 #define CE_CHN_SWITCH_CMD		0x2
+#define SCM_BOOT_ADDR			0x1
+#define SCM_FLAG_COLDBOOT_CPU1		0x1
 
 int scm_init(void);
 extern int scm_call(u32 svc_id, u32 cmd_id, const void *cmd_buf, size_t cmd_len,

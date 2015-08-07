@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2011-2015, Code Aurora Forum. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,5 +68,26 @@ void gpio_tlmm_config(unsigned int gpio, unsigned int func,
 	}
 
         return;
+}
+
+int gpio_get_value(unsigned int gpio)
+{
+	unsigned int addr = GPIO_IN_OUT_ADDR(gpio);
+	unsigned int val = readl(addr);
+
+	return (val & (1 << GPIO_INPUT));
+}
+
+void gpio_set_value(unsigned int gpio, int what)
+{
+	unsigned int addr = GPIO_IN_OUT_ADDR(gpio);
+	unsigned int val = readl(addr);
+
+	val &= (~(1 << GPIO_OUTPUT));
+
+	if (what)
+		val |= (1 << GPIO_OUTPUT);
+
+	writel(val, addr);
 }
 

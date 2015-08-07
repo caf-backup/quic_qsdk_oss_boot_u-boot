@@ -27,14 +27,15 @@
 #else
 #define dbg(format, arg...) do {} while(0)
 #endif /* DEBUG */
-
+ipq_gmac_board_cfg_t *gmac_cfg_qca8511;
 
 static uint32_t
-qca8511_pp_reg_read(uint32_t reg_addr)
+qca8511_pp_reg_read(ipq_gmac_board_cfg_t *gmac_cfg, uint32_t reg_addr)
 {
 	uint32_t reg_word_addr;
-	uint32_t phy_addr, tmp_val, reg_val;
+	uint32_t phy_addr, reg_val;
 	uint16_t phy_val;
+	uint16_t tmp_val;
 	uint8_t phy_reg;
 
 	/*
@@ -53,7 +54,7 @@ qca8511_pp_reg_read(uint32_t reg_addr)
 	 *  Bit23-8 of reg address
 	 */
 	phy_val = (uint16_t) ((reg_word_addr >> 8) & 0xffff);
-	phy_reg_write(0, phy_addr, phy_reg, phy_val);
+	miiphy_write(gmac_cfg->phy_name, phy_addr, phy_reg, phy_val);
 	dbg("WJL %s: 1-w.phy_addr=0x%04x, phy_reg=0x%04x,"
 			"phy_val=0x%04x.\n\n",
 		__func__, phy_addr, phy_reg, phy_val);
@@ -72,7 +73,7 @@ qca8511_pp_reg_read(uint32_t reg_addr)
 	 * Bit4-0 of reg address.
 	 */
 	phy_reg = (uint8_t) (reg_word_addr & 0x1f);
-	reg_val = (uint32_t) phy_reg_read(0, phy_addr, phy_reg);
+	miiphy_read(gmac_cfg->phy_name, phy_addr, phy_reg, &phy_val);
 	dbg("WJL %s: 2-r.phy_addr=0x%04x, phy_reg=0x%04x,"
 			"phy_val=0x%04x, reg_val=0x%04x.\n\n",
 			__func__, phy_addr, phy_reg, phy_val, reg_val);
@@ -87,8 +88,8 @@ qca8511_pp_reg_read(uint32_t reg_addr)
 	 * Bit4-0 of reg address.
 	 */
 	phy_reg = (uint8_t) ((reg_word_addr & 0x1f) | 0x2);
-	tmp_val = (uint32_t) phy_reg_read(0, phy_addr, phy_reg);
-	reg_val |= (tmp_val << 16);
+	miiphy_read(gmac_cfg->phy_name, phy_addr, phy_reg, &tmp_val);
+	reg_val = (tmp_val << 16 | phy_val);
 
 	dbg("WJL %s: 3-r.phy_addr=0x%04x, phy_reg=0x%04x,"
 			"phy_val=0x%04x, reg_val=0x%04x.\n\n",
@@ -98,7 +99,8 @@ qca8511_pp_reg_read(uint32_t reg_addr)
 	return reg_val;
 }
 
-static void qca8511_pp_reg_write(uint32_t reg_addr, uint32_t reg_val)
+static void qca8511_pp_reg_write(ipq_gmac_board_cfg_t *gmac_cfg,
+				  uint32_t reg_addr, uint32_t reg_val)
 {
 	uint32_t reg_word_addr;
 	uint32_t phy_addr;
@@ -122,7 +124,7 @@ static void qca8511_pp_reg_write(uint32_t reg_addr, uint32_t reg_val)
 	 * Bit23-8 of reg address.
 	 */
 	phy_val = (uint16_t) ((reg_word_addr >> 8) & 0xffff);
-	phy_reg_write(0, phy_addr, phy_reg, phy_val);
+	miiphy_write(gmac_cfg->phy_name, phy_addr, phy_reg, phy_val);
 	dbg("WJL %s: 1-w.phy_addr=0x%04x, phy_reg=0x%04x,"
 			"phy_val=0x%04x.\n\n",
 			__func__, phy_addr, phy_reg, phy_val);
@@ -145,7 +147,7 @@ static void qca8511_pp_reg_write(uint32_t reg_addr, uint32_t reg_val)
 	 * lowest 16bit data
 	 */
 	phy_val = (uint16_t) (reg_val & 0xffff);
-	phy_reg_write(0, phy_addr, phy_reg, phy_val);
+	miiphy_write(gmac_cfg->phy_name, phy_addr, phy_reg, phy_val);
 
 	dbg("WJL %s: 2-w.phy_addr=0x%04x, phy_reg=0x%04x,"
 			"phy_val=0x%04x, reg_val=0x%04x.\n\n",
@@ -164,7 +166,7 @@ static void qca8511_pp_reg_write(uint32_t reg_addr, uint32_t reg_val)
 	 * Highest 16bit data
 	 */
 	phy_val = (uint16_t) ((reg_val >> 16) & 0xffff);
-	phy_reg_write(0, phy_addr, phy_reg, phy_val);
+	miiphy_write(gmac_cfg->phy_name, phy_addr, phy_reg, phy_val);
 
 	dbg("WJL %s: 3-w.phy_addr=0x%04x, phy_reg=0x%04x,"
 			"phy_val=0x%04x, reg_val=0x%04x.\n\n",
@@ -172,8 +174,9 @@ static void qca8511_pp_reg_write(uint32_t reg_addr, uint32_t reg_val)
 
 }
 
-static uint32_t qca8511_pp_phy_reg_read(uint32_t phy_sel,
-			uint32_t phy_addr, uint8_t reg_addr)
+static uint32_t qca8511_pp_phy_reg_read(ipq_gmac_board_cfg_t *gmac_cfg,
+					 uint32_t phy_sel, uint32_t phy_addr,
+					 uint8_t reg_addr)
 {
 	uint32_t reg_val;
 	/*
@@ -202,11 +205,11 @@ static uint32_t qca8511_pp_phy_reg_read(uint32_t phy_sel,
 			"reg_addr=0x%x, reg_val=0x%08x.\n",
 		__func__, phy_sel, phy_addr,reg_addr, reg_val);
 
-	qca8511_pp_reg_write(0x15004, reg_val);
+	qca8511_pp_reg_write(gmac_cfg, 0x15004, reg_val);
 
 	udelay(10);
 
-	reg_val = qca8511_pp_reg_read(0x15004);
+	reg_val = qca8511_pp_reg_read(gmac_cfg, 0x15004);
 
 	dbg("WJL %s: 2. phy_sel=0x%x, phy_addr=0x%x,"
 			"reg_addr=0x%x, reg_val=0x%08x.\n",
@@ -216,8 +219,9 @@ static uint32_t qca8511_pp_phy_reg_read(uint32_t phy_sel,
 	return reg_val;
 }
 
-static void qca8511_pp_phy_reg_write(uint32_t phy_sel, uint32_t phy_addr,
-				uint32_t reg_addr, uint32_t reg_data)
+static void qca8511_pp_phy_reg_write(ipq_gmac_board_cfg_t *gmac_cfg,
+				      uint32_t phy_sel, uint32_t phy_addr,
+				      uint32_t reg_addr, uint32_t reg_data)
 {
 	uint32_t reg_val;
 
@@ -253,13 +257,13 @@ static void qca8511_pp_phy_reg_write(uint32_t phy_sel, uint32_t phy_addr,
 			"reg_addr=0x%x, reg_val=0x%08x.\n",
 		__func__, phy_sel, phy_addr,reg_addr, reg_val);
 
-	qca8511_pp_reg_write(0x15004, reg_val);
+	qca8511_pp_reg_write(gmac_cfg, 0x15004, reg_val);
 
 	udelay(10);
 	/*
 	 * if b31-MDIO_BUSY is reset to 0?
 	 */
-	reg_val = qca8511_pp_reg_read(0x15004);
+	reg_val = qca8511_pp_reg_read(gmac_cfg, 0x15004);
 
 	dbg("WJL %s: 2. phy_sel=0x%x, phy_addr=0x%x,"
 			"reg_addr=0x%x, reg_val=0x%08x.\n",
@@ -270,7 +274,7 @@ static void qca8511_pp_phy_reg_write(uint32_t phy_sel, uint32_t phy_addr,
 }
 
 
-static int do_qca8511_pp_reg_read( cmd_tbl_t *cmdtp, int flag,
+static int do_qca8511_pp_reg_read(cmd_tbl_t *cmdtp, int flag,
 				int argc, char * const argv[])
 {
 	ulong addr, readval;
@@ -290,7 +294,7 @@ static int do_qca8511_pp_reg_read( cmd_tbl_t *cmdtp, int flag,
 	 */
 	addr = simple_strtoul(argv[1], NULL, 16);
 
-	readval = qca8511_pp_reg_read(addr);
+	readval = qca8511_pp_reg_read(gmac_cfg_qca8511, addr);
 
 	printf("WJL %s: addr=0x%08x, readval=0x%08x.\n\n",
 			__func__, addr, readval);
@@ -331,7 +335,7 @@ static int do_qca8511_pp_reg_write( cmd_tbl_t *cmdtp, int flag,
 	printf("WJL %s: addr=0x%08x, writeval=0x%08x.\n\n",
 			__func__,addr, writeval);
 
-	qca8511_pp_reg_write(addr, writeval);
+	qca8511_pp_reg_write(gmac_cfg_qca8511, addr, writeval);
 	dbg("\n");
 	return 0;
 }
@@ -358,7 +362,8 @@ static int do_qca8511_pp_phy_reg_read( cmd_tbl_t *cmdtp, int flag,
 	phy_addr = simple_strtoul(argv[2], NULL, 16);
 	reg_addr = simple_strtoul(argv[3], NULL, 16);
 
-	reg_val = qca8511_pp_phy_reg_read(phy_sel, phy_addr, reg_addr);
+	reg_val = qca8511_pp_phy_reg_read(gmac_cfg_qca8511, phy_sel,
+					   phy_addr, reg_addr);
 
 	printf("WJL %s: phy_sel=0x%x, phy_addr=0x%x, reg_addr=0x%x,"
 			"reg_val=0x%08x, size=%d.\n\n",
@@ -394,7 +399,8 @@ static int do_qca8511_pp_phy_reg_write( cmd_tbl_t *cmdtp,
 			"reg_data=0x%08x, size=%d.\n",
 		__func__, phy_sel, phy_addr, reg_addr, reg_data, size);
 
-	qca8511_pp_phy_reg_write(phy_sel, phy_addr, reg_addr, reg_data);
+	qca8511_pp_phy_reg_write(gmac_cfg_qca8511, phy_sel, phy_addr, 
+				  reg_addr, reg_data);
 	dbg("\n");
 	return 0;
 }
@@ -410,7 +416,9 @@ static int do_qca8511_pp_phy_reg_write( cmd_tbl_t *cmdtp,
 int ipq_qca8511_init(ipq_gmac_board_cfg_t *gmac_cfg)
 {
 	uint i;
-	qca8511_pp_reg_write(QCA8511_QSGMII_1_CTRL(QSGMII_1_CTRL0),
+
+	gmac_cfg_qca8511 = gmac_cfg;
+	qca8511_pp_reg_write(gmac_cfg, QCA8511_QSGMII_1_CTRL(QSGMII_1_CTRL0),
 			QSGMII_1_CH0_DUPLEX_MODE |
 			QSGMII_1_CH0_LINK |
 			QSGMII_1_CH0_SPEED_MODE(FORCE_1000) |
@@ -424,7 +432,7 @@ int ipq_qca8511_init(ipq_gmac_board_cfg_t *gmac_cfg)
 			QSGMII_1_RSVD30 |
 			QSGMII_1_RSVD31);
 
-	qca8511_pp_reg_write(QCA8511_QSGMII_2_CTRL(QSGMII_2_CTRL0),
+	qca8511_pp_reg_write(gmac_cfg, QCA8511_QSGMII_2_CTRL(QSGMII_2_CTRL0),
 			QSGMII_2_CH1_DUPLEX_MODE |
 			QSGMII_2_CH1_LINK |
 			QSGMII_2_CH1_SPEED_MODE(FORCE_1000) |
@@ -438,7 +446,7 @@ int ipq_qca8511_init(ipq_gmac_board_cfg_t *gmac_cfg)
 			QSGMII_2_RSVD30 |
 			QSGMII_2_RSVD31);
 
-	qca8511_pp_reg_write(QCA8511_QSGMII_3_CTRL(QSGMII_3_CTRL0),
+	qca8511_pp_reg_write(gmac_cfg, QCA8511_QSGMII_3_CTRL(QSGMII_3_CTRL0),
 			QSGMII_3_CH2_DUPLEX_MODE |
 			QSGMII_3_CH2_LINK |
 			QSGMII_3_CH2_SPEED_MODE(FORCE_1000) |
@@ -452,7 +460,7 @@ int ipq_qca8511_init(ipq_gmac_board_cfg_t *gmac_cfg)
 			QSGMII_2_RSVD30 |
 			QSGMII_2_RSVD31);
 
-	qca8511_pp_reg_write(QCA8511_QSGMII_4_CTRL(QSGMII_3_CTRL0),
+	qca8511_pp_reg_write(gmac_cfg, QCA8511_QSGMII_4_CTRL(QSGMII_3_CTRL0),
 			QSGMII_4_CH3_DUPLEX_MODE |
 			QSGMII_4_CH3_LINK |
 			QSGMII_4_CH3_SPEED_MODE(FORCE_1000) |
@@ -466,7 +474,7 @@ int ipq_qca8511_init(ipq_gmac_board_cfg_t *gmac_cfg)
 			QSGMII_4_RSVD30 |
 			QSGMII_4_RSVD31);
 
-	qca8511_pp_reg_write(QCA8511_SGMII_CTRL0(SGMII_CTRL0_PORT8),
+	qca8511_pp_reg_write(gmac_cfg, QCA8511_SGMII_CTRL0(SGMII_CTRL0_PORT8),
 			SGMII_CTRL0_DUPLEX(1) |
 			SGMII_CTRL0_SPEED_MODE(2) |
 			SGMII_CTRL0_MR_AN_EN |
@@ -483,14 +491,14 @@ int ipq_qca8511_init(ipq_gmac_board_cfg_t *gmac_cfg)
 	 */
 
 	for (i = STATUS_PORT1; i < STATUS_PORT5; i++) {
-		qca8511_pp_reg_write(QCA8511_PORT_STATUS_CFG(i),
+		qca8511_pp_reg_write(gmac_cfg, QCA8511_PORT_STATUS_CFG(i),
 				QCA8511_PORT_CFG_SPEED(FORCE_1000) |
 				QCA8511_PORT_CFG_TX_MAC_EN |
 				QCA8511_PORT_CFG_RX_MAC_EN |
 				QCA8511_PORT_CFG_DUPLEX_MODE);
 	}
 
-	qca8511_pp_reg_write(QCA8511_GLOBAL_CTRL1,
+	qca8511_pp_reg_write(gmac_cfg, QCA8511_GLOBAL_CTRL1,
 			GLOBAL_CTL1_MAC25XG_4P3G_EN |
 			GLOBAL_CTL1_MAC25XG_3P125G_EN |
 			GLOBAL_CTL1_MAC26SG_1P25G_EN |
@@ -505,7 +513,7 @@ int ipq_qca8511_init(ipq_gmac_board_cfg_t *gmac_cfg)
 			GLOBAL_CTL1_RSVD29 |
 			GLOBAL_CTL1_TWO_WIRE_LED_EN);
 
-	qca8511_pp_reg_write(QCA8511_XAUI_SGMII_SERDES13_CTRL0,
+	qca8511_pp_reg_write(gmac_cfg, QCA8511_XAUI_SGMII_SERDES13_CTRL0,
 			SGMII_CTRL0_RSVD(3) |
 			SGMII_CTRL0_XAUI_EN_PLL(3) |
 			SGMII_CTRL0_XAUI_DEEMP_CH0(1) |
@@ -513,7 +521,7 @@ int ipq_qca8511_init(ipq_gmac_board_cfg_t *gmac_cfg)
 			SGMII_CTRL0_XAUI_DEEMP_CH3(1) |
 			SGMII_CTRL0_XAUI_EN_SD(0xf));
 
-	qca8511_pp_reg_write(QCA8511_XAUI_SGMII_SERDES13_CTRL1,
+	qca8511_pp_reg_write(gmac_cfg, QCA8511_XAUI_SGMII_SERDES13_CTRL1,
 			SGMII_CTRL1_RSVD4(3) |
 			SGMII_CTRL1_XAUI_EN_RX(0xf) |
 			SGMII_CTRL1_XAUI_EN_TX(0xf) |

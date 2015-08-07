@@ -13,6 +13,8 @@
 
 #include <common.h>
 #include <linux/mtd/ipq_nand.h>
+#include <mtd_node.h>
+#include <jffs2/load_kernel.h>
 #include <asm/arch-ipq806x/gpio.h>
 #include <asm/global_data.h>
 #include <asm/io.h>
@@ -620,6 +622,7 @@ int board_eth_init(bd_t *bis)
 {
 	int status;
 	gpio_func_data_t *gpio = gboard_param->switch_gpio;
+	gpio_func_data_t *ak01_gpio = gboard_param->reset_ak01_gmac_gpio;
 
 	if (gpio) {
 		gpio_tlmm_config(gpio->gpio, gpio->func, gpio->out,
@@ -639,6 +642,12 @@ int board_eth_init(bd_t *bis)
 		ipq_register_switch(ipq_qca8511_init);
 		break;
 	case MACH_TYPE_IPQ806X_AK01_1XX:
+		if (ak01_gpio) {
+			gpio_tlmm_config(ak01_gpio->gpio, 0, 0, 0, 0, 0);
+			mdelay(100);
+			gpio_tlmm_config(ak01_gpio->gpio, ak01_gpio->func, ak01_gpio->out,
+				ak01_gpio->pull, ak01_gpio->drvstr, ak01_gpio->oe);
+		};
 		ipq_register_switch(NULL);
 		break;
 	default:
@@ -715,6 +724,60 @@ void board_mmc_deinit(void)
 #endif
 
 #ifdef CONFIG_OF_BOARD_SETUP
+void ipq_fdt_fixup_mtdparts(void *blob, struct node_info *ni)
+{
+	struct mtd_device *dev;
+	char *parts;
+	int noff;
+
+	parts = getenv("mtdparts");
+	if (!parts)
+		return;
+
+	if (mtdparts_init() != 0)
+		return;
+
+	for (; ni->compat; ni++) {
+		noff = fdt_node_offset_by_compatible(blob, -1, ni->compat);
+
+		while (noff != -FDT_ERR_NOTFOUND) {
+			dev = device_find(ni->type, ni->idx);
+			if (dev) {
+				if (fdt_node_set_part_info(blob, noff, dev)) {
+					return; /* return on error */
+				}
+			}
+
+			/* Jump to next flash node */
+			noff = fdt_node_offset_by_compatible(blob, noff,
+								ni->compat);
+		}
+	}
+}
+
+int ipq_fdt_fixup_socinfo(void *blob)
+{
+	uint32_t cpu_type;
+	int nodeoff, ret;
+
+	ret = ipq_smem_get_socinfo_cpu_type(&cpu_type);
+	if (ret) {
+		printf("ipq: fdt fixup cannot get socinfo\n");
+		return ret;
+	}
+	nodeoff = fdt_node_offset_by_compatible(blob, -1, "qcom,ipq8064");
+
+	if (nodeoff < 0) {
+		printf("ipq: fdt fixup cannot find compatible node\n");
+		return nodeoff;
+	}
+	ret = fdt_setprop(blob, nodeoff, "cpu_type",
+				&cpu_type, sizeof(cpu_type));
+	if (ret)
+		printf("%s: cannot set cpu type %d\n", __func__, ret);
+	return ret;
+}
+
 /*
  * For newer kernel that boot with device tree (3.14+), all of memory is
  * described in the /memory node, including areas that the kernel should not be
@@ -727,8 +790,29 @@ void ft_board_setup(void *blob, bd_t *bd)
 {
 	u64 memory_start = CONFIG_SYS_SDRAM_BASE;
 	u64 memory_size = gboard_param->ddr_size;
+	ipq_smem_flash_info_t *sfi = &ipq_smem_flash_info;
+	char *mtdparts = NULL;
 
+	struct node_info nodes[] = {
+		{ "s25fl256s1", MTD_DEV_TYPE_NAND, 1 },
+		{ "qcom,qcom_nand", MTD_DEV_TYPE_NAND, 0 },
+		{ NULL, 0, -1 },
+	};
+
+	if (sfi->flash_type == SMEM_BOOT_NAND_FLASH) {
+		mtdparts = "mtdparts=1ac00000.nand";
+	} else if (sfi->flash_type == SMEM_BOOT_SPI_FLASH) {
+		mtdparts = "mtdparts=nand1";
+	}
+	mtdparts = ipq_smem_part_to_mtdparts(mtdparts);
 	fdt_fixup_memory_banks(blob, &memory_start, &memory_size, 1);
+
+	debug("mtdparts = %s\n", mtdparts);
+
+	setenv("mtdids", "nand0=1ac00000.nand,nand1=nand1");
+	setenv("mtdparts", mtdparts);
+
+	ipq_fdt_fixup_mtdparts(blob, nodes);
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 

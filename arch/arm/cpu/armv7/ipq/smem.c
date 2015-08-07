@@ -33,16 +33,32 @@
 #include <common.h>
 #include <asm/io.h>
 #include <asm/errno.h>
+#include <asm/sizes.h>
 #include <asm/arch-ipq806x/smem.h>
 #include <nand.h>
 
 extern int nand_env_device;
 
+#define BUILD_ID_LEN 32
+
+struct ipq_socinfo {
+	unsigned format;
+	unsigned id;
+	unsigned version;
+	char     build_id[BUILD_ID_LEN];
+	unsigned raw_id;
+	unsigned raw_version;
+	unsigned hw_platform;
+	unsigned platform_version;
+	unsigned accessory_chip;
+	unsigned hw_platform_subtype;
+};
+
 typedef enum {
 	SMEM_SPINLOCK_ARRAY = 7,
 	SMEM_AARM_PARTITION_TABLE = 9,
 	SMEM_APPS_BOOT_MODE = 106,
-	SMEM_BOARD_INFO_LOCATION = 137,
+	SMEM_HW_SW_BUILD_ID = 137,
 	SMEM_USABLE_RAM_PARTITION_TABLE = 402,
 	SMEM_POWER_ON_STATUS_INFO = 403,
 	SMEM_RLOCK_AREA = 404,
@@ -428,6 +444,91 @@ void ipq_set_part_entry(ipq_smem_flash_info_t *smem, ipq_part_entry_t *part,
 uint32_t ipq_smem_get_flash_block_size(void)
 {
 	return ipq_smem_flash_info.flash_block_size;
+}
+
+static char parts[4096];
+
+char *ipq_smem_part_to_mtdparts(char *mtdid)
+{
+	ipq_smem_flash_info_t *sfi = &ipq_smem_flash_info;
+	int i, l;
+	char *part = parts, *unit;
+
+	part += sprintf(part, "%s:", mtdid);
+
+	for (i = 0; i < smem_ptable.len; i++) {
+		struct smem_ptn *p = &smem_ptable.parts[i];
+		loff_t psize;
+
+		if (p->size == (~0u)) {
+			/*
+			 * Partition size is 'till end of device', calculate
+			 * appropriately
+			 */
+			psize = nand_info[nand_env_device].size - (((loff_t)
+					p->start) * sfi->flash_block_size);
+		} else {
+			psize = ((loff_t)p->size) * sfi->flash_block_size;
+		}
+
+		if ((psize > SZ_1M) && (((psize & (SZ_1M - 1)) == 0))) {
+			psize /= SZ_1M;
+			unit = "M@";
+		} else if ((psize > SZ_1K) && (((psize & (SZ_1K - 1)) == 0))) {
+			psize /= SZ_1K;
+			unit = "K@";
+		} else {
+			unit = "@";
+		}
+
+		l = sprintf(part, "%lld%s0x%llx(%s),", psize, unit,
+				((loff_t)p->start) * sfi->flash_block_size,
+				p->name);
+		part += l;
+	}
+
+	if (i == 0)
+		return NULL;
+
+	*part = 0;	/* Remove the trailing comma */
+
+	return parts;
+}
+
+int ipq_smem_get_socinfo_cpu_type(uint32_t *cpu_type)
+{
+	int smem_status;
+	struct ipq_socinfo socinfo;
+
+	smem_status = smem_read_alloc_entry(SMEM_HW_SW_BUILD_ID,
+				&socinfo, sizeof(struct ipq_socinfo));
+
+	if (!smem_status) {
+		*cpu_type = socinfo.id;
+		debug("smem: socinfo - cpu type = %d\n",*cpu_type);
+	} else {
+		printf("smem: Get socinfo failed\n");
+	}
+
+	return smem_status;
+}
+
+int ipq_smem_get_socinfo_version(uint32_t *version)
+{
+	int smem_status;
+	struct ipq_socinfo socinfo;
+
+	smem_status = smem_read_alloc_entry(SMEM_HW_SW_BUILD_ID,
+				&socinfo, sizeof(struct ipq_socinfo));
+
+	if (!smem_status) {
+		*version = socinfo.version;
+		debug("smem: socinfo - version = 0x%x\n",*version);
+	} else {
+		printf("smem: Get socinfo failed\n");
+	}
+
+	return smem_status;
 }
 
 int do_smeminfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])

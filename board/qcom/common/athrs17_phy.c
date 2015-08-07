@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015 The Linux Foundation. All rights reserved.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -27,6 +27,7 @@
  */
 
 #include <common.h>
+#include <miiphy.h>
 #include "athrs17_phy.h"
 #include "../../../drivers/net/ipq/ipq_gmac.h"
 /******************************************************************************
@@ -40,11 +41,12 @@
  *
  *****************************************************************************/
 static uint32_t
-athrs17_reg_read(uint32_t reg_addr)
+athrs17_reg_read(ipq_gmac_board_cfg_t *gmac_cfg, uint32_t reg_addr)
 {
 	uint32_t reg_word_addr;
-	uint32_t phy_addr, tmp_val, reg_val;
+	uint32_t phy_addr, reg_val;
 	uint16_t phy_val;
+	uint16_t tmp_val;
 	uint8_t phy_reg;
 
 	/* change reg_addr to 16-bit word address, 32-bit aligned */
@@ -54,7 +56,7 @@ athrs17_reg_read(uint32_t reg_addr)
 	phy_addr = 0x18;
 	phy_reg = 0x0;
 	phy_val = (uint16_t) ((reg_word_addr >> 8) & 0x1ff);  /* bit16-8 of reg address */
-	phy_reg_write(0, phy_addr, phy_reg, phy_val);
+	miiphy_write(gmac_cfg->phy_name, phy_addr, phy_reg, phy_val);
 
 	/*
 	 * For some registers such as MIBs, since it is read/clear, we should
@@ -64,14 +66,14 @@ athrs17_reg_read(uint32_t reg_addr)
 	/* read register in lower address */
 	phy_addr = 0x10 | ((reg_word_addr >> 5) & 0x7); /* bit7-5 of reg address */
 	phy_reg = (uint8_t) (reg_word_addr & 0x1f);   /* bit4-0 of reg address */
-	reg_val = (uint32_t) phy_reg_read(0, phy_addr, phy_reg);
+	miiphy_read(gmac_cfg->phy_name, phy_addr, phy_reg, &phy_val);
 
 	/* read register in higher address */
 	reg_word_addr++;
 	phy_addr = 0x10 | ((reg_word_addr >> 5) & 0x7); /* bit7-5 of reg address */
 	phy_reg = (uint8_t) (reg_word_addr & 0x1f);   /* bit4-0 of reg address */
-	tmp_val = (uint32_t) phy_reg_read(0, phy_addr, phy_reg);
-	reg_val |= (tmp_val << 16);
+	miiphy_read(gmac_cfg->phy_name, phy_addr, phy_reg, &tmp_val);
+	reg_val = (tmp_val << 16 | phy_val);
 
 	return reg_val;
 }
@@ -87,7 +89,8 @@ athrs17_reg_read(uint32_t reg_addr)
  *
  *****************************************************************************/
 static void
-athrs17_reg_write(uint32_t reg_addr, uint32_t reg_val)
+athrs17_reg_write(ipq_gmac_board_cfg_t *gmac_cfg, uint32_t reg_addr,
+		   uint32_t reg_val)
 {
 	uint32_t reg_word_addr;
 	uint32_t phy_addr;
@@ -101,7 +104,7 @@ athrs17_reg_write(uint32_t reg_addr, uint32_t reg_val)
 	phy_addr = 0x18;
 	phy_reg = 0x0;
 	phy_val = (uint16_t) ((reg_word_addr >> 8) & 0x1ff);  /* bit16-8 of reg address */
-	phy_reg_write(0, phy_addr, phy_reg, phy_val);
+	miiphy_write(gmac_cfg->phy_name, phy_addr, phy_reg, phy_val);
 
 	/*
 	 * For some registers such as ARL and VLAN, since they include BUSY bit
@@ -114,14 +117,14 @@ athrs17_reg_write(uint32_t reg_addr, uint32_t reg_val)
 	phy_addr = 0x10 | ((reg_word_addr >> 5) & 0x7); /* bit7-5 of reg address */
 	phy_reg = (uint8_t) (reg_word_addr & 0x1f);   /* bit4-0 of reg address */
 	phy_val = (uint16_t) ((reg_val >> 16) & 0xffff);
-	phy_reg_write(0, phy_addr, phy_reg, phy_val);
+	miiphy_write(gmac_cfg->phy_name, phy_addr, phy_reg, phy_val);
 
 	/* write register in lower address */
 	reg_word_addr--;
 	phy_addr = 0x10 | ((reg_word_addr >> 5) & 0x7); /* bit7-5 of reg address */
 	phy_reg = (uint8_t) (reg_word_addr & 0x1f);   /* bit4-0 of reg address */
 	phy_val = (uint16_t) (reg_val & 0xffff);
-	phy_reg_write(0, phy_addr, phy_reg, phy_val);
+	miiphy_write(gmac_cfg->phy_name, phy_addr, phy_reg, phy_val);
 }
 
 /*********************************************************************
@@ -131,28 +134,28 @@ athrs17_reg_write(uint32_t reg_addr, uint32_t reg_val)
  * INPUT : NONE
  * OUTPUT: NONE
  *********************************************************************/
-void athrs17_vlan_config(void)
+void athrs17_vlan_config(ipq_gmac_board_cfg_t *gmac_cfg)
 {
-	athrs17_reg_write(S17_P0LOOKUP_CTRL_REG, 0x00140020);
-	athrs17_reg_write(S17_P0VLAN_CTRL0_REG, 0x20001);
+	athrs17_reg_write(gmac_cfg, S17_P0LOOKUP_CTRL_REG, 0x00140020);
+	athrs17_reg_write(gmac_cfg, S17_P0VLAN_CTRL0_REG, 0x20001);
 
-	athrs17_reg_write(S17_P1LOOKUP_CTRL_REG, 0x0014005c);
-	athrs17_reg_write(S17_P1VLAN_CTRL0_REG, 0x10001);
+	athrs17_reg_write(gmac_cfg, S17_P1LOOKUP_CTRL_REG, 0x0014005c);
+	athrs17_reg_write(gmac_cfg, S17_P1VLAN_CTRL0_REG, 0x10001);
 
-	athrs17_reg_write(S17_P2LOOKUP_CTRL_REG, 0x0014005a);
-	athrs17_reg_write(S17_P2VLAN_CTRL0_REG, 0x10001);
+	athrs17_reg_write(gmac_cfg, S17_P2LOOKUP_CTRL_REG, 0x0014005a);
+	athrs17_reg_write(gmac_cfg, S17_P2VLAN_CTRL0_REG, 0x10001);
 
-	athrs17_reg_write(S17_P3LOOKUP_CTRL_REG, 0x00140056);
-	athrs17_reg_write(S17_P3VLAN_CTRL0_REG, 0x10001);
+	athrs17_reg_write(gmac_cfg, S17_P3LOOKUP_CTRL_REG, 0x00140056);
+	athrs17_reg_write(gmac_cfg, S17_P3VLAN_CTRL0_REG, 0x10001);
 
-	athrs17_reg_write(S17_P4LOOKUP_CTRL_REG, 0x0014004e);
-	athrs17_reg_write(S17_P4VLAN_CTRL0_REG, 0x10001);
+	athrs17_reg_write(gmac_cfg, S17_P4LOOKUP_CTRL_REG, 0x0014004e);
+	athrs17_reg_write(gmac_cfg, S17_P4VLAN_CTRL0_REG, 0x10001);
 
-	athrs17_reg_write(S17_P5LOOKUP_CTRL_REG, 0x00140001);
-	athrs17_reg_write(S17_P5VLAN_CTRL0_REG, 0x20001);
+	athrs17_reg_write(gmac_cfg, S17_P5LOOKUP_CTRL_REG, 0x00140001);
+	athrs17_reg_write(gmac_cfg, S17_P5VLAN_CTRL0_REG, 0x20001);
 
-	athrs17_reg_write(S17_P6LOOKUP_CTRL_REG, 0x0014001e);
-	athrs17_reg_write(S17_P6VLAN_CTRL0_REG, 0x10001);
+	athrs17_reg_write(gmac_cfg, S17_P6LOOKUP_CTRL_REG, 0x0014001e);
+	athrs17_reg_write(gmac_cfg, S17_P6VLAN_CTRL0_REG, 0x10001);
 	printf("%s ...done\n", __func__);
 }
 
@@ -161,21 +164,21 @@ void athrs17_vlan_config(void)
 * INPUT: NONE
 * OUTPUT: NONE
 *******************************************************************/
-int athrs17_init_switch(void)
+int athrs17_init_switch(ipq_gmac_board_cfg_t *gmac_cfg)
 {
 	uint32_t data;
 	uint32_t i = 0;
 
 	/* Reset the switch before initialization */
-	athrs17_reg_write(S17_MASK_CTRL_REG, S17_MASK_CTRL_SOFT_RET);
+	athrs17_reg_write(gmac_cfg, S17_MASK_CTRL_REG, S17_MASK_CTRL_SOFT_RET);
 	do {
 		udelay(10);
-		data = athrs17_reg_read(S17_MASK_CTRL_REG);
+		data = athrs17_reg_read(gmac_cfg, S17_MASK_CTRL_REG);
 	} while (data & S17_MASK_CTRL_SOFT_RET);
 
 	do {
 		udelay(10);
-		data = athrs17_reg_read(S17_GLOBAL_INT0_REG);
+		data = athrs17_reg_read(gmac_cfg, S17_GLOBAL_INT0_REG);
 		i++;
 		if (i == 10)
 			return -1;
@@ -193,20 +196,20 @@ void athrs17_reg_init(ipq_gmac_board_cfg_t *gmac_cfg)
 {
 	uint32_t data;
 
-	data = athrs17_reg_read(S17_MAC_PWR_REG) | gmac_cfg->mac_pwr0;
-	athrs17_reg_write(S17_MAC_PWR_REG, data);
+	data = athrs17_reg_read(gmac_cfg, S17_MAC_PWR_REG) | gmac_cfg->mac_pwr0;
+	athrs17_reg_write(gmac_cfg, S17_MAC_PWR_REG, data);
 
-	athrs17_reg_write(S17_P0STATUS_REG, (S17_SPEED_1000M | S17_TXMAC_EN |
+	athrs17_reg_write(gmac_cfg, S17_P0STATUS_REG, (S17_SPEED_1000M | S17_TXMAC_EN |
 					     S17_RXMAC_EN | S17_TX_FLOW_EN |
 					     S17_RX_FLOW_EN | S17_DUPLEX_FULL));
 
-	athrs17_reg_write(S17_GLOFW_CTRL1_REG, (S17_IGMP_JOIN_LEAVE_DPALL |
+	athrs17_reg_write(gmac_cfg, S17_GLOFW_CTRL1_REG, (S17_IGMP_JOIN_LEAVE_DPALL |
 						S17_BROAD_DPALL |
 						S17_MULTI_FLOOD_DPALL |
 						S17_UNI_FLOOD_DPALL));
 
-	athrs17_reg_write(S17_P5PAD_MODE_REG, S17_MAC0_RGMII_RXCLK_DELAY);
-	athrs17_reg_write(S17_P0PAD_MODE_REG, (S17_MAC0_RGMII_EN | \
+	athrs17_reg_write(gmac_cfg, S17_P5PAD_MODE_REG, S17_MAC0_RGMII_RXCLK_DELAY);
+	athrs17_reg_write(gmac_cfg, S17_P0PAD_MODE_REG, (S17_MAC0_RGMII_EN | \
 		S17_MAC0_RGMII_TXCLK_DELAY | S17_MAC0_RGMII_RXCLK_DELAY | \
 		(0x1 << S17_MAC0_RGMII_TXCLK_SHIFT) | \
 		(0x3 << S17_MAC0_RGMII_RXCLK_SHIFT)));
@@ -223,21 +226,21 @@ void athrs17_reg_init_lan(ipq_gmac_board_cfg_t *gmac_cfg)
 {
 	uint32_t reg_val;
 
-	athrs17_reg_write(S17_P6STATUS_REG, (S17_SPEED_1000M | S17_TXMAC_EN |
+	athrs17_reg_write(gmac_cfg, S17_P6STATUS_REG, (S17_SPEED_1000M | S17_TXMAC_EN |
 					     S17_RXMAC_EN |
 					     S17_DUPLEX_FULL));
 
-	reg_val = athrs17_reg_read(S17_MAC_PWR_REG) | gmac_cfg->mac_pwr1;
-	athrs17_reg_write(S17_MAC_PWR_REG, reg_val);
+	reg_val = athrs17_reg_read(gmac_cfg, S17_MAC_PWR_REG) | gmac_cfg->mac_pwr1;
+	athrs17_reg_write(gmac_cfg, S17_MAC_PWR_REG, reg_val);
 
-	reg_val = athrs17_reg_read(S17_P6PAD_MODE_REG);
-	athrs17_reg_write(S17_P6PAD_MODE_REG, (reg_val | S17_MAC6_SGMII_EN));
+	reg_val = athrs17_reg_read(gmac_cfg, S17_P6PAD_MODE_REG);
+	athrs17_reg_write(gmac_cfg, S17_P6PAD_MODE_REG, (reg_val | S17_MAC6_SGMII_EN));
 
-	reg_val = athrs17_reg_read(S17_PWS_REG);
-	athrs17_reg_write(S17_PWS_REG, (reg_val | S17c_PWS_SERDES_ANEG_DISABLE));
+	reg_val = athrs17_reg_read(gmac_cfg, S17_PWS_REG);
+	athrs17_reg_write(gmac_cfg, S17_PWS_REG, (reg_val |
+			   S17c_PWS_SERDES_ANEG_DISABLE));
 
-
-	athrs17_reg_write(S17_SGMII_CTRL_REG,(S17c_SGMII_EN_PLL |
+	athrs17_reg_write(gmac_cfg, S17_SGMII_CTRL_REG,(S17c_SGMII_EN_PLL |
 					S17c_SGMII_EN_RX |
 					S17c_SGMII_EN_TX |
 					S17c_SGMII_EN_SD |
@@ -277,7 +280,8 @@ int do_ar8xxx_dump(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
 		struct athrs17_regmap *section = &regmap[i];
 
 		for (reg = section->start; reg <= section->end; reg += sizeof(uint32_t)) {
-			uint32_t val = athrs17_reg_read(reg);
+			ipq_gmac_board_cfg_t *gmac_tmp_cfg = gboard_param->gmac_cfg;
+			uint32_t val = athrs17_reg_read(gmac_tmp_cfg, reg);
 			printf("%03lx: %08lx\n", reg, val);
 		}
 	}
@@ -305,11 +309,11 @@ int ipq_athrs17_init(ipq_gmac_board_cfg_t *gmac_cfg)
 	if (gmac_cfg == NULL)
 		return -1;
 
-	ret = athrs17_init_switch();
+	ret = athrs17_init_switch(gmac_cfg);
 	if (ret != -1) {
 		athrs17_reg_init(gmac_cfg);
 		athrs17_reg_init_lan(gmac_cfg);
-		athrs17_vlan_config();
+		athrs17_vlan_config(gmac_cfg);
 		printf ("S17c init  done\n");
 	}
 

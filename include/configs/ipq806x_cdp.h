@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -271,6 +271,8 @@ typedef struct {
 #define CONFIG_IPQ_NAND_NAND_INFO_IDX	0
 #define CONFIG_IPQ_SPI_NAND_INFO_IDX	1
 
+#define CONFIG_FDT_FIXUP_PARTITIONS
+
 /*
  * Expose SPI driver as a pseudo NAND driver to make use
  * of U-Boot's MTD framework.
@@ -325,6 +327,8 @@ typedef struct {
 #define CONFIG_IPQ_MDIO
 #define CONFIG_MII
 #define CONFIG_CMD_MII
+#define CONFIG_BITBANGMII
+#define CONFIG_BITBANGMII_MULTI
 
 
 #define CONFIG_IPQ_SWITCH_ATHRS17

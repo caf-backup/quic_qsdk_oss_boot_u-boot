@@ -74,16 +74,19 @@
 #define GSBI_1			1
 #define GSBI_2			2
 #define GSBI_4			4
-#define GSBI_2                  2
-#define UART1_DM_BASE         	0x12450000
-#define UART_GSBI1_BASE       	0x12440000
+#define GSBI_2			2
+#define UART1_DM_BASE		0x12450000
+#define UART_GSBI1_BASE		0x12440000
 #define UART2_DM_BASE		0x12490000
 #define UART_GSBI2_BASE		0x12480000
-#define UART4_DM_BASE         	0x16340000
-#define UART_GSBI4_BASE       	0x16300000
-#define I2C_GSBI4_BASE       	UART_GSBI4_BASE
+#define UART4_DM_BASE		0x16340000
+#define UART_GSBI4_BASE		0x16300000
+#define I2C_GSBI4_BASE		UART_GSBI4_BASE
 
-#define UART2_DM_BASE           0x12490000
-#define UART_GSBI2_BASE         0x12480000
+#define UART2_DM_BASE		0x12490000
+#define UART_GSBI2_BASE		0x12480000
+
+#define CPU1_APCS_SAW2_VCTL	0x02099014
+#define CPU1_APCS_CPU_PWR_CTL	0x02098004
 
 #endif

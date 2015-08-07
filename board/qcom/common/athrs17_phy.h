@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015 The Linux Foundation. All rights reserved.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -604,10 +604,10 @@
 #undef HEADER_REG_CONF
 #undef HEADER_EN
 #endif
-int athrs17_init_switch(void);
+int athrs17_init_switch(ipq_gmac_board_cfg_t *gmac_cfg);
 void athrs17_reg_init(ipq_gmac_board_cfg_t *);
 void athrs17_reg_init_lan(ipq_gmac_board_cfg_t *gmac_cfg);
-void athrs17_vlan_config(void);
+void athrs17_vlan_config(ipq_gmac_board_cfg_t *gmac_cfg);
 #endif
 
 

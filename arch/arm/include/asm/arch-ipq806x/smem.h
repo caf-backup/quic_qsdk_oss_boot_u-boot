@@ -55,6 +55,8 @@ int smem_get_boot_flash(uint32_t *flash_type,
 int smem_getpart(char *name, uint32_t *start, uint32_t *size);
 unsigned int smem_get_board_machtype(void);
 int smem_ram_ptable_init(struct smem_ram_ptable *smem_ram_ptable);
+int ipq_smem_get_socinfo_cpu_type(uint32_t *cpu_type);
+int ipq_smem_get_socinfo_version(uint32_t *version);
 
 typedef struct {
 	loff_t offset;
@@ -121,5 +123,6 @@ extern ipq_smem_bootconfig_v2_info_t ipq_smem_bootconfig_v2_info;
 int smem_bootconfig_info(void);
 unsigned int get_rootfs_active_partition(void);
 unsigned int get_mibib_active_partition(void);
+char *ipq_smem_part_to_mtdparts(char *mtdid);
 
 #endif
