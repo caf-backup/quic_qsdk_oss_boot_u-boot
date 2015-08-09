@@ -597,6 +597,7 @@ int board_eth_init(bd_t *bis)
 {
 	int status;
 	gpio_func_data_t *gpio = gboard_param->switch_gpio;
+	gpio_func_data_t *ak01_gpio = gboard_param->reset_ak01_gmac_gpio;
 
 	if (gpio) {
 		gpio_tlmm_config(gpio->gpio, gpio->func, gpio->out,
@@ -616,6 +617,12 @@ int board_eth_init(bd_t *bis)
 		ipq_register_switch(ipq_qca8511_init);
 		break;
 	case MACH_TYPE_IPQ806X_AK01_1XX:
+		if (ak01_gpio) {
+			gpio_tlmm_config(ak01_gpio->gpio, 0, 0, 0, 0, 0);
+			mdelay(100);
+			gpio_tlmm_config(ak01_gpio->gpio, ak01_gpio->func, ak01_gpio->out,
+				ak01_gpio->pull, ak01_gpio->drvstr, ak01_gpio->oe);
+		};
 		ipq_register_switch(NULL);
 		break;
 	default:
