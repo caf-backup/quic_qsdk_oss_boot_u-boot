@@ -104,7 +104,16 @@ typedef struct {
 	const char phy_name[MDIO_NAME_LEN];
 } ipq_gmac_board_cfg_t;
 
+typedef struct {
+	uint base;
+	uint gsbi_base;
+	uint uart_dm_base;
+	clk_mnd_t uart_mnd_value;
+	gpio_func_data_t *dbg_uart_gpio;
+} uart_cfg_t;
+
 #define IPQ_GMAC_NMACS		4
+#define IPQ_UART_MAX		2
 
 #ifdef CONFIG_IPQ806X_PCI
 #define PCI_MAX_DEVICES		3
@@ -129,23 +138,20 @@ void board_pci_init(void);
 typedef struct {
 	unsigned int machid;
 	unsigned int ddr_size;
-	unsigned int uart_gsbi;
-	unsigned int uart_gsbi_base;
-	unsigned int uart_dm_base;
 	unsigned int clk_dummy;
-	clk_mnd_t uart_mnd_value;
 	clk_mnd_t usb_core_mnd_value;
 	clk_mnd_t usb_utmi_mnd_value;
 	unsigned int gmac_gpio_count;
 	gpio_func_data_t *gmac_gpio;
 	ipq_gmac_board_cfg_t gmac_cfg[IPQ_GMAC_NMACS];
+	uart_cfg_t uart_cfg[IPQ_UART_MAX];
+	uart_cfg_t *console_uart_cfg;
 	gpio_func_data_t *switch_gpio;
 	gpio_func_data_t *reset_switch_gpio;
 	gpio_func_data_t *reset_ak01_gmac_gpio;
 	gpio_func_data_t *ar8033_gpio;
 	flash_desc flashdesc;
 	spinorflash_params_t flash_param;
-	gpio_func_data_t dbg_uart_gpio[NO_OF_DBG_UART_GPIOS];
 #ifdef CONFIG_IPQ806X_I2C
 	unsigned int i2c_gsbi;
 	unsigned int i2c_gsbi_base;
