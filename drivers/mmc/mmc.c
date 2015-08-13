@@ -333,7 +333,7 @@ mmc_berase(int dev_num, unsigned long start, lbaint_t blkcnt)
 	int err = 0;
 	struct mmc *mmc = find_mmc_device(dev_num);
 	lbaint_t blk = 0, blk_r = 0;
-	int timeout = 2000;
+	int timeout = mmc->trim_timeout;
 	int arg = SECURE_ERASE;
 
 	if (!mmc)
@@ -1201,8 +1201,10 @@ int mmc_startup(struct mmc *mmc)
 		if (ext_csd[EXT_CSD_PARTITIONING_SUPPORT] & PART_SUPPORT)
 			mmc->part_config = ext_csd[EXT_CSD_PART_CONF];
 
-		if(ext_csd[EXT_CSD_SEC_FEATURE_SUPPORT])
+		if (ext_csd[EXT_CSD_SEC_FEATURE_SUPPORT]) {
 			mmc->sec_feature_support = ext_csd[EXT_CSD_SEC_FEATURE_SUPPORT];
+			mmc->trim_timeout = 300 * ext_csd[EXT_CSD_TRIM_MULT]; /* In milliseconds */
+		}
 	}
 
 	if (IS_SD(mmc))
