@@ -35,6 +35,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define MTDPARTS_BUF_LEN	256
 
 /* Watchdog bite time set to default reset value */
 #define RESET_WDT_BITE_TIME 0x31F3
@@ -792,24 +793,35 @@ void ft_board_setup(void *blob, bd_t *bd)
 	u64 memory_size = gboard_param->ddr_size;
 	ipq_smem_flash_info_t *sfi = &ipq_smem_flash_info;
 	char *mtdparts = NULL;
+	char parts_str[MTDPARTS_BUF_LEN];
 
 	struct node_info nodes[] = {
-		{ "s25fl256s1", MTD_DEV_TYPE_NAND, 1 },
 		{ "qcom,qcom_nand", MTD_DEV_TYPE_NAND, 0 },
+		{ "s25fl256s1", MTD_DEV_TYPE_NAND, 1 },
 		{ NULL, 0, -1 },
 	};
 
 	if (sfi->flash_type == SMEM_BOOT_NAND_FLASH) {
-		mtdparts = "mtdparts=1ac00000.nand";
+		mtdparts = "mtdparts=nand0";
 	} else if (sfi->flash_type == SMEM_BOOT_SPI_FLASH) {
-		mtdparts = "mtdparts=nand1";
+
+		ipq_get_part_details();
+		if (sfi->rootfs.offset == 0xBAD0FF5E ) {
+			sprintf(parts_str,
+				"mtdparts=nand0:0x%x@0(rootfs);nand1",
+				IPQ_NAND_ROOTFS_SIZE);
+			mtdparts = parts_str;
+		} else {
+			mtdparts = "mtdparts=nand1";
+		}
 	}
 	mtdparts = ipq_smem_part_to_mtdparts(mtdparts);
 	fdt_fixup_memory_banks(blob, &memory_start, &memory_size, 1);
 
-	debug("mtdparts = %s\n", mtdparts);
+	if(mtdparts != NULL)
+		printf("mtdparts = %s\n", mtdparts);
 
-	setenv("mtdids", "nand0=1ac00000.nand,nand1=nand1");
+	setenv("mtdids", "nand0=nand0,nand1=nand1");
 	setenv("mtdparts", mtdparts);
 
 	ipq_fdt_fixup_mtdparts(blob, nodes);
