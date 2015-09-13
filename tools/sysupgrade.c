@@ -16,11 +16,12 @@
 #include <elf.h>
 #include <dirent.h>
 
-#define SBL_VERSION_FILE	"/sys/devices/system/qfprom/qfprom0/sbl_version"
-#define TZ_VERSION_FILE	"/sys/devices/system/qfprom/qfprom0/tz_version"
-#define HLOS_VERSION_FILE	"/sys/devices/system/qfprom/qfprom0/hlos_version"
-#define APPSBL_VERSION_FILE	"/sys/devices/system/qfprom/qfprom0/appsbl_version"
-#define RPM_VERSION_FILE	"/sys/devices/system/qfprom/qfprom0/rpm_version"
+#define SBL_VERSION_FILE       "sbl_version"
+#define TZ_VERSION_FILE        "tz_version"
+#define HLOS_VERSION_FILE      "hlos_version"
+#define APPSBL_VERSION_FILE    "appsbl_version"
+#define RPM_VERSION_FILE       "rpm_version"
+#define VERSION_FILE_BASENAME  "/sys/devices/system/qfprom/qfprom0/"
 #define AUTHENTICATE_FILE	"/sys/devices/system/qfprom/qfprom0/authenticate"
 #define TEMP_KERNEL_PATH	"/tmp/tmp_kernel.bin"
 #define MAX_SBL_VERSION	11
@@ -176,12 +177,13 @@ int is_authentication_check_enabled(void)
 int get_local_image_version(struct image_section *section)
 {
 	int len, fd;
-	char local_version_string[16];
+	char local_version_string[16], version_file[64];
 	struct stat st;
 
-	fd = open(section->version_file, O_RDONLY);
+	snprintf(version_file, sizeof(version_file), "%s%s", VERSION_FILE_BASENAME, section->version_file);
+	fd = open(version_file, O_RDONLY);
 	if (fd == -1) {
-		perror(section->version_file);
+		perror(version_file);
 		return 0;
 	}
 
@@ -207,19 +209,20 @@ int get_local_image_version(struct image_section *section)
 int set_local_image_version(struct image_section *section)
 {
 	int fd;
-	char version_string[16];
+	char version_string[16], version_file[64];
 	int len;
 
-	fd = open(section->version_file, O_WRONLY, S_IRUSR | S_IWUSR);
+	snprintf(version_file, sizeof(version_file), "%s%s", TMP_FILE_DIR, section->version_file);
+	fd = open(version_file, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fd == -1) {
-		perror(section->version_file);
+		perror(version_file);
 		return 0;
 	}
 
 	len = snprintf(version_string, 8, "%d", section->img_version);
 	printf("Version to be updated:%s\n", version_string);
 	if (write(fd, version_string, len) == -1) {
-		printf("Error writing version to %s\n", section->version_file);
+		printf("Error writing version to %s\n", version_file);
 		close(fd);
 		return 0;
 	}
