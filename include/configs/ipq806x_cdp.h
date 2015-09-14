@@ -309,6 +309,7 @@ typedef struct {
 #define CONFIG_IPQ_FIRMWARE
 #define CONFIG_BOOTCOMMAND  "bootipq"
 #define CONFIG_BOOTARGS "console=ttyHSL1,115200n8"
+#define CONFIG_IPQ_FDT_HIGH	0xFFFFFFFF
 
 #define CONFIG_CMD_ECHO
 #define CONFIG_BOOTDELAY	2
