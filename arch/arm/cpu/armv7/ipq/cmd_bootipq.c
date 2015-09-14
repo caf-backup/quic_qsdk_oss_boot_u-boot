@@ -100,7 +100,7 @@ static void update_dtb_config_name(void)
 
 	} else {
 		snprintf(dtb_config_name,
-			sizeof(dtb_config_name),"%s","");
+			sizeof(dtb_config_name),"#config@%d",SOCINFO_VERSION_MAJOR(soc_version));
 	}
 }
 
