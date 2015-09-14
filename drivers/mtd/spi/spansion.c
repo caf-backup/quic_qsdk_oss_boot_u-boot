@@ -115,7 +115,7 @@ static const struct spansion_spi_flash_params spansion_spi_flash_table[] = {
 		 * Refer to Table 11.1, tBE entry
 		 */
 		.bulkerase_timeout = 180,
-		.name = "S25FL129P_64K",
+		.name = "S25FL128S",
 	},
 	{
 		.idcode1 = 0x0219,

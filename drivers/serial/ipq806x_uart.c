@@ -48,9 +48,11 @@ static unsigned int msm_boot_uart_dm_init(unsigned int  uart_dm_base);
 
 /* Received data is valid or not */
 static int valid_data = 0;
+static int uart_valid_data = 0;
 
 /* Received data */
 static unsigned int word = 0;
+static unsigned int uart_word = 0;
 
 /**
  * msm_boot_uart_dm_init_rx_transfer - Init Rx transfer
@@ -89,14 +91,14 @@ static unsigned int msm_boot_uart_dm_init_rx_transfer(unsigned int uart_dm_base)
  * @wait is true, else returns %MSM_BOOT_UART_DM_E_RX_NOT_READY.
  */
 static unsigned int
-msm_boot_uart_dm_read(unsigned int *data, int *count, int wait)
+msm_boot_uart_dm_read(unsigned int *data, int *count, int wait, uart_cfg_t *uart_cfg)
 {
 	static int total_rx_data = 0;
 	static int rx_data_read = 0;
 	unsigned int  base = 0;
 	uint32_t status_reg;
 
-	base = gboard_param->uart_dm_base;
+	base = uart_cfg->uart_dm_base;
 
 	if (data == NULL)
 		return MSM_BOOT_UART_DM_E_INVAL;
@@ -192,7 +194,7 @@ msm_boot_uart_replace_lr_with_cr(char *data_in,
  * till space becomes available.
  */
 static unsigned int
-msm_boot_uart_dm_write(char *data, unsigned int num_of_chars)
+msm_boot_uart_dm_write(char *data, unsigned int num_of_chars, uart_cfg_t *uart_cfg)
 {
 	unsigned int tx_word_count = 0;
 	unsigned int tx_char_left = 0, tx_char = 0;
@@ -200,7 +202,7 @@ msm_boot_uart_dm_write(char *data, unsigned int num_of_chars)
 	int i = 0;
 	char *tx_data = NULL;
 	char new_data[1024];
-	unsigned int base = gboard_param->uart_dm_base;
+	unsigned int base = uart_cfg->uart_dm_base;
 
         if ((data == NULL) || (num_of_chars <= 0))
                 return MSM_BOOT_UART_DM_E_INVAL;
@@ -332,6 +334,24 @@ static unsigned int msm_boot_uart_dm_init(unsigned int  uart_dm_base)
 	return 0;
 }
 
+static void configure_uart_dm(uart_cfg_t *uart_cfg)
+{
+	ipq_configure_gpio(uart_cfg->dbg_uart_gpio, NO_OF_DBG_UART_GPIOS);
+
+	uart_clock_config(uart_cfg->base,
+			uart_cfg->uart_mnd_value.m_value,
+			uart_cfg->uart_mnd_value.n_value,
+			uart_cfg->uart_mnd_value.d_value,
+			gboard_param->clk_dummy);
+	writel(GSBI_PROTOCOL_CODE_I2C_UART <<
+			GSBI_CTRL_REG_PROTOCOL_CODE_S,
+			GSBI_CTRL_REG(uart_cfg->gsbi_base));
+	writel(UART_DM_CLK_RX_TX_BIT_RATE,
+			MSM_BOOT_UART_DM_CSR(uart_cfg->uart_dm_base));
+	/* Intialize UART_DM */
+	msm_boot_uart_dm_init(uart_cfg->uart_dm_base);
+}
+
 /**
  * uart_dm_init - initializes UART
  *
@@ -339,26 +359,24 @@ static unsigned int msm_boot_uart_dm_init(unsigned int  uart_dm_base)
  */
 static void uart_dm_init(void)
 {
-	unsigned int dm_base, gsbi_base;
+	uart_cfg_t *console_uart_cfg = gboard_param->console_uart_cfg;
+	uart_cfg_t *uart_cfg = gboard_param->uart_cfg;
+	int i;
 
-	dm_base = gboard_param->uart_dm_base;
-	gsbi_base = gboard_param->uart_gsbi_base;
-	ipq_configure_gpio(gboard_param->dbg_uart_gpio, NO_OF_DBG_UART_GPIOS);
+	/* Configure console  UART */
+	if (console_uart_cfg->base > 0)
+		configure_uart_dm(console_uart_cfg);
 
-	/* Configure the uart clock */
-        uart_clock_config(gboard_param->uart_gsbi,
-		gboard_param->uart_mnd_value.m_value,
-		gboard_param->uart_mnd_value.n_value,
-		gboard_param->uart_mnd_value.d_value,
-		gboard_param->clk_dummy);
-
-	writel(GSBI_PROTOCOL_CODE_I2C_UART <<
-		GSBI_CTRL_REG_PROTOCOL_CODE_S,
-		GSBI_CTRL_REG(gsbi_base));
-        writel(UART_DM_CLK_RX_TX_BIT_RATE, MSM_BOOT_UART_DM_CSR(dm_base));
-	/* Intialize UART_DM */
-	msm_boot_uart_dm_init(dm_base);
+	/* Configure Additional  UARTs */
+	for (i = 0; i < IPQ_UART_MAX; uart_cfg++, i++) {
+		if (uart_cfg->base > 0) {
+			configure_uart_dm(uart_cfg);
+		} else {
+			printf("uart is not enabled\n");
+		}
+	}
 }
+
 
 /**
  * serial_putc - transmits a character
@@ -366,7 +384,9 @@ static void uart_dm_init(void)
  */
 void serial_putc(char c)
 {
-        msm_boot_uart_dm_write(&c, 1);
+        uart_cfg_t *uart_tmp_cfg = gboard_param->console_uart_cfg;
+
+        msm_boot_uart_dm_write(&c, 1, uart_tmp_cfg);
 }
 
 /**
@@ -386,12 +406,14 @@ void serial_puts(const char *s)
  */
 int serial_tstc(void)
 {
+	uart_cfg_t *uart_tmp_cfg = gboard_param->console_uart_cfg;
 	/* Return if data is already read */
 	if (valid_data)
 		return 1;
 
 	/* Read data from the FIFO */
-	if (msm_boot_uart_dm_read(&word, &valid_data, 0) != MSM_BOOT_UART_DM_E_SUCCESS)
+	if (msm_boot_uart_dm_read(&word, &valid_data, 0,
+		uart_tmp_cfg) != MSM_BOOT_UART_DM_E_SUCCESS)
 		return 0;
 
 	return 1;
@@ -434,3 +456,101 @@ int  serial_init(void)
         uart_dm_init();
         return 0;
 }
+
+/**
+ * do_uartwr - transmits a string of data
+ * @s: string to transmit
+ */
+static int do_uartwr(cmd_tbl_t *cmdtp, int flag,
+				int argc, char * const argv[])
+{
+	char *s = argv[2];
+	int port_no, port_max = IPQ_UART_MAX;
+	uart_cfg_t *uart_tmp_cfg = gboard_param->uart_cfg;
+	int i;
+
+	if (argc < 3)
+		goto usage;
+
+	port_no = (int)simple_strtoul(argv[1], NULL, 10);
+	if (port_no > port_max) {
+		printf("Invalid uart port for write: use port from 0 to %d\n",
+			(port_max - 1));
+	} else {
+		uart_tmp_cfg = uart_tmp_cfg + port_no;
+		if (uart_tmp_cfg->base > 0) {
+			while (*s != '\0')
+				msm_boot_uart_dm_write(s++, 1, uart_tmp_cfg);
+		} else {
+			printf("This port %d is not suppported for additional uart write\n",
+				 port_no);
+		}
+	}
+	return 0;
+usage:
+	return CMD_RET_USAGE;
+}
+
+static int uart_serial_tstc(uart_cfg_t *uart_tmp_cfg)
+{
+	/* Return if data is already read */
+	if (uart_valid_data)
+		return 1;
+
+	/* Read data from the FIFO */
+	if (msm_boot_uart_dm_read(&uart_word, &uart_valid_data, 0,
+			uart_tmp_cfg) != MSM_BOOT_UART_DM_E_SUCCESS)
+		return 0;
+
+	return 1;
+}
+
+static int do_uartrd(cmd_tbl_t *cmdtp, int flag,
+				int argc, char * const argv[])
+{
+	int byte;
+	uart_cfg_t *uart_tmp_cfg = gboard_param->uart_cfg;
+	int port_no, port_max = IPQ_UART_MAX, i;
+
+	if (argc < 2)
+		goto usage;
+
+	port_no = (int)simple_strtoul(argv[1], NULL, 10);
+
+	if (port_no > port_max) {
+		printf("Invalid uart port for read: use port from 0 to %d\n",
+			(port_max - 1));
+	} else {
+		uart_tmp_cfg = uart_tmp_cfg + port_no;
+		if (uart_tmp_cfg->base > 0) {
+			for (;;) {
+				while (!uart_serial_tstc(uart_tmp_cfg)) {
+					/* wait for incoming data */
+				}
+				byte = (int)uart_word & 0xff;
+				switch (byte) {
+					case 0x03:
+						return (-1);
+					default:
+						serial_putc(byte);
+				}
+				uart_word = uart_word >> 8;
+				uart_valid_data--;
+			}
+		} else {
+			printf("This port %d is not suppported for additional uart read\n",
+				port_no);
+		}
+	}
+	return 0;
+usage:
+	return CMD_RET_USAGE;
+}
+
+U_BOOT_CMD(uartwr, 3, 1, do_uartwr,
+	   "uartwr from flash device",
+	   "uartwr - write strings to uart\n");
+
+U_BOOT_CMD(uartrd, 2, 1, do_uartrd,
+	   "uartrd from flash device",
+	   "uartrd - read strings from uart\n");

@@ -45,6 +45,9 @@ extern board_ipq806x_params_t *gboard_param;
 static ipq_mmc *host = &mmc_host;
 #endif
 
+#define DTB_CFG_LEN		64
+static unsigned char dtb_config_name[DTB_CFG_LEN];
+
 typedef struct {
 	unsigned int image_type;
 	unsigned int header_vsn_num;
@@ -69,6 +72,37 @@ typedef struct {
 } switch_ce_chn_buf_t;
 
 kernel_img_info_t kernel_img_info;
+
+static void update_dtb_config_name(void)
+{
+	struct fdt_property *imginfop;
+	int nodeoffset;
+
+	/*
+	* construt the dtb config name upon image info property
+	*/
+	nodeoffset = fdt_path_offset(img_addr, "/image-info");
+
+	if(nodeoffset >= 0) {
+		imginfop = fdt_get_property(img_addr, nodeoffset,
+					"type", NULL);
+		if(imginfop) {
+			if (strcmp(imginfop->data, "multiplatform") != 0) {
+				printf("node property is not set, using default dtb config\n");
+				snprintf(dtb_config_name,
+					sizeof(dtb_config_name),"%s","");
+			}
+		} else {
+			printf("node property is unavailable, using default dtb config\n");
+			snprintf(dtb_config_name,
+				sizeof(dtb_config_name),"%s","");
+		}
+
+	} else {
+		snprintf(dtb_config_name,
+			sizeof(dtb_config_name),"#config@%d",SOCINFO_VERSION_MAJOR(soc_version));
+	}
+}
 
 #ifdef CONFIG_IPQ_LOAD_NSS_FW
 /**
@@ -425,8 +459,9 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 	if (ret)
 		return CMD_RET_FAILURE;
 
+	update_dtb_config_name();
 	snprintf(runcmd, sizeof(runcmd), "bootm 0x%x%s\n", request,
-		gboard_param->dtb_config_name[SOCINFO_VERSION_MAJOR(soc_version)]);
+		dtb_config_name);
 
 	if (debug)
 		printf(runcmd);
@@ -572,10 +607,17 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 			"set mtdids nand0=nand0 && "
 			"set mtdparts mtdparts=nand0:0x%llx@0x%llx(fs),${msmparts} && "
 			"ubi part fs && "
-			"ubi read 0x%x kernel && "
-			"bootm 0x%x%s\n", sfi->rootfs.size, sfi->rootfs.offset,
-				CONFIG_SYS_LOAD_ADDR, CONFIG_SYS_LOAD_ADDR,
-				 gboard_param->dtb_config_name[SOCINFO_VERSION_MAJOR(soc_version)]);
+			"ubi read 0x%x kernel && ",
+				sfi->rootfs.size, sfi->rootfs.offset,
+				CONFIG_SYS_LOAD_ADDR);
+
+		if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
+			return CMD_RET_FAILURE;
+
+		update_dtb_config_name();
+		snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
+				CONFIG_SYS_LOAD_ADDR,
+				dtb_config_name);
 #ifdef CONFIG_IPQ_MMC
 	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH ||
 			sfi->flash_secondary_type == SMEM_BOOT_MMC_FLASH) {
@@ -594,10 +636,12 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 			if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 				return CMD_RET_FAILURE;
 
+			update_dtb_config_name();
 			snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
 				CONFIG_SYS_LOAD_ADDR,
-				gboard_param->dtb_config_name[SOCINFO_VERSION_MAJOR(soc_version)]);
+				dtb_config_name);
 		}
+
 #endif
 	} else {
 
@@ -614,9 +658,12 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 		if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 			return CMD_RET_FAILURE;
 
+		update_dtb_config_name();
+
 		snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
 			CONFIG_SYS_LOAD_ADDR,
-			gboard_param->dtb_config_name[SOCINFO_VERSION_MAJOR(soc_version)]);
+			dtb_config_name);
+
 	}
 
 	if (debug)
@@ -641,6 +688,16 @@ static int do_bootipq(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	int ret;
 	char buf;
 
+	/*
+	 * set fdt_high parameter to all ones, so that u-boot will pass the
+	 * loaded in-place fdt address to kernel instead of relocating the fdt.
+	 */
+	if (setenv_addr("fdt_high", (void *)CONFIG_IPQ_FDT_HIGH)
+			!= CMD_RET_SUCCESS) {
+		printf("Cannot set fdt_high to %x to avoid relocation\n",
+			CONFIG_IPQ_FDT_HIGH);
+	}
+
 	if(!ipq_smem_get_socinfo_version(&soc_version))
 		debug("Soc version is = %x \n", SOCINFO_VERSION_MAJOR(soc_version));
 	else
@@ -648,6 +705,9 @@ static int do_bootipq(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 
 	ret = scm_call(SCM_SVC_FUSE, QFPROM_IS_AUTHENTICATE_CMD,
 			NULL, 0, &buf, sizeof(char));
+
+	sprintf(dtb_config_name,
+		"#config@%d_%d", gboard_param->machid, SOCINFO_VERSION_MAJOR(soc_version));
 
 	if (ret == 0 && buf == 1) {
 		return do_boot_signedimg(cmdtp, flag, argc, argv);

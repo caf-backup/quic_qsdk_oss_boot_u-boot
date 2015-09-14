@@ -446,6 +446,81 @@ gpio_func_data_t emmc1_gpio[] = {
 };
 #endif
 
+gpio_func_data_t gsbi1_gpio[] = {
+	{
+		.gpio = 51,
+		.func = 1,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_12MA,
+		.oe = GPIO_OE_ENABLE
+	},
+	{
+		.gpio = 52,
+		.func = 1,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_12MA,
+		.oe = GPIO_OE_ENABLE
+	},
+};
+
+gpio_func_data_t gsbi2_gpio[] = {
+	{
+		.gpio = 22,
+		.func = 1,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_12MA,
+		.oe = GPIO_OE_ENABLE
+	},
+	{
+		.gpio = 23,
+		.func = 1,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_12MA,
+		.oe = GPIO_OE_ENABLE
+	},
+};
+
+gpio_func_data_t gsbi4_gpio[] = {
+	{
+		.gpio = 10,
+		.func = 1,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_12MA,
+		.oe = GPIO_OE_ENABLE
+	},
+	{
+		.gpio = 11,
+		.func = 1,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_12MA,
+		.oe = GPIO_OE_ENABLE
+	},
+};
+
+uart_cfg_t gsbi1_console_uart = {
+	.base 	   	= GSBI_1,
+	.gsbi_base	= UART_GSBI1_BASE,
+	.uart_dm_base   = UART1_DM_BASE,
+	.uart_mnd_value	= { .m_value = 48, .n_value = 125, .d_value = 63 },
+	.dbg_uart_gpio  = &gsbi1_gpio,
+};
+
+uart_cfg_t gsbi2_console_uart = {
+	.base 	   	= GSBI_2,
+	.gsbi_base	= UART_GSBI2_BASE,
+	.uart_dm_base   = UART2_DM_BASE,
+	.uart_mnd_value	= { .m_value = 12, .n_value = 625, .d_value = 313 },
+	.dbg_uart_gpio  = &gsbi2_gpio,
+};
+
+uart_cfg_t gsbi4_console_uart = {
+	.base 	   	= GSBI_4,
+	.gsbi_base	= UART_GSBI4_BASE,
+	.uart_dm_base   = UART4_DM_BASE,
+	.uart_mnd_value	= { .m_value = 12, .n_value = 625, .d_value = 313 },
+	.dbg_uart_gpio  = &gsbi4_gpio,
+};
+
 #define gmac_board_cfg(_b, _sec, _p, _p0, _p1, _mp, _pn, ...)		\
 {									\
 	.base			= NSS_GMAC##_b##_BASE,			\
@@ -459,6 +534,15 @@ gpio_func_data_t emmc1_gpio[] = {
 	.phy_name		= "IPQ MDIO"#_b		 		\
 }
 
+#define uart_board_cfg(_b, _m, _n, _d)							\
+{											\
+	.base			= _b,							\
+	.gsbi_base		= UART_GSBI##_b##_BASE,					\
+	.uart_dm_base		= UART##_b##_DM_BASE,					\
+	.uart_mnd_value		= { .m_value = _m, .n_value = _n, .d_value = _d },	\
+	.dbg_uart_gpio		= &gsbi##_b##_gpio,					\
+}
+
 #define gmac_board_cfg_invalid()	{ .unit = -1, }
 
 /* Board specific parameter Array */
@@ -470,10 +554,6 @@ board_ipq806x_params_t board_params[] = {
 	{
 		.machid = MACH_TYPE_IPQ806X_RUMI3,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_1,
-		.uart_gsbi_base = UART_GSBI1_BASE,
-		.uart_dm_base = UART1_DM_BASE,
-		.uart_mnd_value = { 48, 125, 63 },
 		.usb_core_mnd_value = { 5, 32, 1 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.flashdesc = NAND_NOR,
@@ -483,22 +563,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 51,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 52,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+		.console_uart_cfg = &gsbi1_console_uart,
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -521,17 +586,10 @@ board_ipq806x_params_t board_params[] = {
 		},
 #endif
 		.clk_dummy = 1,
-		.dtb_config_name[1] = "",
-		.dtb_config_name[2] = "",
-		.dtb_config_name[3] = "",
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_DB149,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_2,
-		.uart_gsbi_base = UART_GSBI2_BASE,
-		.uart_dm_base = UART2_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac0_gpio),
@@ -546,6 +604,7 @@ board_ipq806x_params_t board_params[] = {
 			gmac_board_cfg(3, 1, SGMII, 0, 0, 1,
 					1, 7),
 		},
+		.console_uart_cfg = &gsbi2_console_uart,
 		.flashdesc = NAND_NOR,
 		.flash_param = {
 			.mode =	NOR_SPI_MODE_0,
@@ -553,22 +612,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 22,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 23,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -596,18 +640,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "#config@22",
-		.dtb_config_name[2] = "#config@23",
-		.dtb_config_name[3] = "#config@24",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_DB149_1XX,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_2,
-		.uart_gsbi_base = UART_GSBI2_BASE,
-		.uart_dm_base = UART2_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac0_gpio),
@@ -629,22 +666,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 22,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 23,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+		.console_uart_cfg = &gsbi2_console_uart,
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -672,18 +694,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "",
-		.dtb_config_name[2] = "",
-		.dtb_config_name[3] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_DB149_2XX,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_2,
-		.uart_gsbi_base = UART_GSBI2_BASE,
-		.uart_dm_base = UART2_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac0_gpio),
@@ -705,22 +720,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 22,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 23,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+		.console_uart_cfg = &gsbi2_console_uart,
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -748,18 +748,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "",
-		.dtb_config_name[2] = "",
-		.dtb_config_name[3] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_TB726,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_2,
-		.uart_gsbi_base = UART_GSBI2_BASE,
-		.uart_dm_base = UART2_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
@@ -786,22 +779,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 22,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 23,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+		.console_uart_cfg = &gsbi2_console_uart,
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -829,18 +807,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "",
-		.dtb_config_name[2] = "",
-		.dtb_config_name[3] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_DB147,
 		.ddr_size = (512 << 20),
-		.uart_gsbi = GSBI_2,
-		.uart_gsbi_base = UART_GSBI2_BASE,
-		.uart_dm_base = UART2_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
@@ -860,22 +831,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 22,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 23,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+		.console_uart_cfg = &gsbi2_console_uart,
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -903,18 +859,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "",
-		.dtb_config_name[2] = "",
-		.dtb_config_name[3] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP148,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_4,
-		.uart_gsbi_base = UART_GSBI4_BASE,
-		.uart_dm_base = UART4_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
@@ -927,6 +876,7 @@ board_ipq806x_params_t board_params[] = {
 			gmac_board_cfg_invalid(),
 			gmac_board_cfg_invalid(),
 		},
+		.console_uart_cfg = &gsbi4_console_uart,
 		.flashdesc = NAND_NOR,
 		.reset_switch_gpio = &reset_s17_gpio,
 		.flash_param = {
@@ -934,22 +884,6 @@ board_ipq806x_params_t board_params[] = {
 			.bus_number = GSBI_BUS_5,
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
-		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 10,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 11,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
 		},
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
@@ -978,18 +912,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "#config@1",
-		.dtb_config_name[2] = "#config@2",
-		.dtb_config_name[3] = "#config@3",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP148_1XX,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_4,
-		.uart_gsbi_base = UART_GSBI4_BASE,
-		.uart_dm_base = UART4_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
@@ -1001,6 +928,10 @@ board_ipq806x_params_t board_params[] = {
 					S17_RGMII1_1_8V, 0, 4, 0, 1, 2, 3),
 			gmac_board_cfg_invalid(),
 			gmac_board_cfg_invalid(),
+		},
+		.console_uart_cfg = &gsbi4_console_uart,
+		.uart_cfg = {
+			uart_board_cfg(2, 12, 625, 313),
 		},
 		.flashdesc = NAND_NOR,
 		.reset_switch_gpio = &reset_s17_gpio,
@@ -1010,22 +941,6 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 10,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 11,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -1053,18 +968,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "",
-		.dtb_config_name[2] = "",
-		.dtb_config_name[3] = "",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP145,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_4,
-		.uart_gsbi_base = UART_GSBI4_BASE,
-		.uart_dm_base = UART4_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
@@ -1084,22 +992,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 10,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 11,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+		.console_uart_cfg = &gsbi4_console_uart,
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -1127,18 +1020,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "#config@4",
-		.dtb_config_name[2] = "#config@5",
-		.dtb_config_name[3] = "#config@6",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP145_1XX,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_4,
-		.uart_gsbi_base = UART_GSBI4_BASE,
-		.uart_dm_base = UART4_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
@@ -1158,22 +1044,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 10,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 11,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+		.console_uart_cfg = &gsbi4_console_uart,
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -1201,19 +1072,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "#config@19",
-		.dtb_config_name[2] = "#config@20",
-		.dtb_config_name[3] = "#config@21",
-
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP160,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_4,
-		.uart_gsbi_base = UART_GSBI4_BASE,
-		.uart_dm_base = UART4_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
@@ -1233,22 +1096,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 10,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 11,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+		.console_uart_cfg = &gsbi4_console_uart,
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -1276,18 +1124,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "#config@7",
-		.dtb_config_name[2] = "#config@8",
-		.dtb_config_name[3] = "#config@9",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP160_2XX,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_4,
-		.uart_gsbi_base = UART_GSBI4_BASE,
-		.uart_dm_base = UART4_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
@@ -1307,22 +1148,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 10,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 11,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+		.console_uart_cfg = &gsbi4_console_uart,
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -1350,18 +1176,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "#config@10",
-		.dtb_config_name[2] = "#config@11",
-		.dtb_config_name[3] = "#config@12",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AK01_1XX,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_4,
-		.uart_gsbi_base = UART_GSBI4_BASE,
-		.uart_dm_base = UART4_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac3_gpio),
@@ -1381,22 +1200,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 10,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 11,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+		.console_uart_cfg = &gsbi4_console_uart,
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -1424,18 +1228,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "#config@13",
-		.dtb_config_name[2] = "#config@14",
-		.dtb_config_name[3] = "#config@15",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP161,
 		.ddr_size = (256 << 20),
-		.uart_gsbi = GSBI_4,
-		.uart_gsbi_base = UART_GSBI4_BASE,
-		.uart_dm_base = UART4_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
@@ -1455,22 +1252,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 10,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 11,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
+		.console_uart_cfg = &gsbi4_console_uart,
 #ifdef CONFIG_IPQ806X_I2C
 		.i2c_gsbi = GSBI_4,
 		.i2c_gsbi_base = I2C_GSBI4_BASE,
@@ -1498,18 +1280,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
-		.dtb_config_name[1] = "#config@16",
-		.dtb_config_name[2] = "#config@17",
-		.dtb_config_name[3] = "#config@18",
 #endif /* CONFIG_IPQ806X_PCI */
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_STORM,
 		.ddr_size = (1024 << 20),
-		.uart_gsbi = GSBI_4,
-		.uart_gsbi_base = UART_GSBI4_BASE,
-		.uart_dm_base = UART4_DM_BASE,
-		.uart_mnd_value = { 12, 625, 313 },
 		.usb_core_mnd_value = { 1, 5, 32 },
 		.usb_utmi_mnd_value = { 1, 40, 1 },
 		.gmac_gpio_count = ARRAY_SIZE(gmac0_gpio),
@@ -1530,25 +1305,7 @@ board_ipq806x_params_t board_params[] = {
 			.chip_select = SPI_CS_0,
 			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
 		},
-		.dbg_uart_gpio = {
-			{
-				.gpio = 10,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-			{
-				.gpio = 11,
-				.func = 1,
-				.pull = GPIO_NO_PULL,
-				.drvstr = GPIO_12MA,
-				.oe = GPIO_OE_ENABLE
-			},
-		},
-		.dtb_config_name[1] = "",
-		.dtb_config_name[2] = "",
-		.dtb_config_name[3] = "",
+		.console_uart_cfg = &gsbi4_console_uart,
 	},
 
 };
