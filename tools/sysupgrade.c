@@ -454,11 +454,9 @@ int is_image_version_higher(void)
 					sections[i].file,
 					sections[i].img_version,
 					sections[i].max_version);
-			return 0;
 		}
 	}
 
-	printf("Image version is higher!\n");
 	return 1;
 }
 
