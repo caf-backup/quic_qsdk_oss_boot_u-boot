@@ -516,14 +516,14 @@ gmac_sgmii_clk_init(uint mac_unit, uint clk_div, ipq_gmac_board_cfg_t *gmac_cfg)
 		break;
 	case GMAC_UNIT2:
 	case GMAC_UNIT3:
+		setbits_le32((NSS_REG_BASE + NSS_ETH_CLK_SRC_CTL),
+			(1 << mac_unit));
 		if (gmac_cfg->mac_conn_to_phy) {
 
 			setbits_le32((QSGMII_REG_BASE + PCS_ALL_CH_CTL),
 				(PCS_CHn_SPEED_FORCE_OUTSIDE(mac_unit) |
 				PCS_DEBUG_SELECT));
 
-			setbits_le32((NSS_REG_BASE + NSS_ETH_CLK_SRC_CTL),
-				(1 << mac_unit));
 
 			if (clk_div == 0) {
 				clrbits_le32((NSS_REG_BASE +
