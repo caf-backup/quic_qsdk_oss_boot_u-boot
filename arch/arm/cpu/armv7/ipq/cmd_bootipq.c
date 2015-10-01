@@ -100,7 +100,7 @@ static void update_dtb_config_name(void)
 
 	} else {
 		snprintf(dtb_config_name,
-			sizeof(dtb_config_name),"%s","");
+			sizeof(dtb_config_name),"#config@%d",SOCINFO_VERSION_MAJOR(soc_version));
 	}
 }
 
@@ -687,6 +687,16 @@ static int do_bootipq(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 	int ret;
 	char buf;
+
+	/*
+	 * set fdt_high parameter to all ones, so that u-boot will pass the
+	 * loaded in-place fdt address to kernel instead of relocating the fdt.
+	 */
+	if (setenv_addr("fdt_high", (void *)CONFIG_IPQ_FDT_HIGH)
+			!= CMD_RET_SUCCESS) {
+		printf("Cannot set fdt_high to %x to avoid relocation\n",
+			CONFIG_IPQ_FDT_HIGH);
+	}
 
 	if(!ipq_smem_get_socinfo_version(&soc_version))
 		debug("Soc version is = %x \n", SOCINFO_VERSION_MAJOR(soc_version));

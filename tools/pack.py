@@ -1179,9 +1179,10 @@ class ArgParser(object):
         self.images_dname = None
         self.ipq_nand = False
         self.bconf = False
-	self.bconf_fname = "boardconfig"
+        self.bconf_fname = "boardconfig"
         self.part_fname = None
         self.fconf_fname = None
+        self.genitb_fname = None
 
     def __init_pagesize(self, pagesize):
         """Set the pagesize, from the command line argument.
@@ -1328,10 +1329,11 @@ class ArgParser(object):
         part_fname = None
         fconf_fname = None
         bconf = False
-	bconf_fname = None
+        bconf_fname = None
+        genitb_fname = None
 
         try:
-            opts, args = getopt(argv[1:], "Bib:hp:t:o:c:m:f:F:")
+            opts, args = getopt(argv[1:], "Bib:hp:t:o:c:m:f:F:M:")
         except GetoptError, e:
             raise UsageError(e.msg)
 
@@ -1356,6 +1358,8 @@ class ArgParser(object):
                 bconf = True
             elif option == "-F":
                 bconf_fname = value
+            elif option == "-M":
+                genitb_fname= value
 
         if len(args) != 1:
             raise UsageError("insufficient arguments")
@@ -1376,8 +1380,10 @@ class ArgParser(object):
 
         self.ipq_nand = ipq_nand
         self.bconf = bconf
-	if bconf_fname != None:
-		self.bconf_fname = bconf_fname
+        if bconf_fname != None:
+            self.bconf_fname = bconf_fname
+
+        self.genitb_fname = genitb_fname
 
     def usage(self, msg):
         """Print error message and command usage information.
@@ -1408,6 +1414,8 @@ class ArgParser(object):
         print "              default is IDIR-TYPE-SIZE-COUNT.img"
         print "              if the filename is relative, it is relative"
         print "              to the parent of IDIR."
+        print "   -M         specifies script name to build single ITB with multiple dtb's,"
+        print "              default disabled."
         print
         print "NOTE: The above invocation method of pack is deprecated."
         print "The new pack invocation uses a board config file to retrieve"
@@ -1443,6 +1451,17 @@ def main():
     except UsageError, e:
         parser.usage(e.args[0])
         sys.exit(1)
+
+    if parser.genitb_fname:
+       prc = subprocess.Popen(['sh', parser.genitb_fname])
+       prc.wait()
+
+       if prc.returncode != 0:
+          print 'ERROR: unable to create ITB'
+          return prc.returncode
+       else:
+          print '...ITB binary created'
+
 
     pack = Pack()
     if parser.bconf:
