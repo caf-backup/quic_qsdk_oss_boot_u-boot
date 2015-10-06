@@ -15,6 +15,9 @@
 #include "sysupgrade.h"
 #include <elf.h>
 #include <dirent.h>
+#include <../drivers/mtd/ubi/ubi-media.h>
+#include <sys/ioctl.h>
+#include <mtd/mtd-user.h>
 
 #define SBL_VERSION_FILE       "sbl_version"
 #define TZ_VERSION_FILE        "tz_version"
@@ -38,6 +41,7 @@
 #define SIG_SIZE		256
 #define NOT_PRESENT		0
 #define SIG_CERT_SIZE		6400
+#define SBL_NAND_PREAMBLE	10240
 
 #define ARRAY_SIZE(array)	sizeof(array)/sizeof(array[0])
 
@@ -65,10 +69,10 @@ struct image_section sections[] = {
 	{
 		.section_type		= HLOS_TYPE,
 		.type			= "ubi",
-		.tmp_file		= "temp_kernel.bin",
+		.tmp_file		= TMP_FILE_DIR,
 		.pre_op			= extract_kernel_binary,
 		.max_version		= MAX_HLOS_VERSION,
-		.file			= TMP_FILE_DIR,
+		.file			= TEMP_KERNEL_PATH,
 		.version_file		= HLOS_VERSION_FILE,
 		.is_present		= NOT_PRESENT,
 		.get_sw_id		= get_sw_id_from_component_bin,
@@ -125,12 +129,16 @@ int get_sections(void)
 		for (i = 0, sec = &sections[0]; i < NO_OF_SECTIONS; i++, sec++) {
 			if (strstr(file->d_name, sec->type)) {
 				if (sec->pre_op) {
-					sec->pre_op(sec);
-					strcat(sec->file, sec->tmp_file);
+					strcat(sec->tmp_file, file->d_name);
+					if (!sec->pre_op(sec)) {
+						printf("Error extracting kernel from ubi\n");
+						return 0;
+					}
 				} else {
 					strcat(sec->file, file->d_name);
 				}
 				if (!sec->get_sw_id(sec)) {
+					closedir(dir);
 					return 0;
 				}
 				get_local_image_version(sec);
@@ -301,9 +309,11 @@ int get_sw_id_from_component_bin(struct image_section *section)
 		close(fd);
 		return 0;
 	}
+
 	mbn_hdr = (Mbn_Hdr *)fp;
 	if (mbn_hdr->image_size - mbn_hdr->code_size != SIG_CERT_SIZE) {
 		printf("Error: Image without version information\n");
+		close(fd);
 		return 0;
 	}
 
@@ -344,7 +354,12 @@ int process_elf(char *bin_file, uint8_t **fp, Elf32_Ehdr **elf, Elf32_Phdr **phd
 		close(fd);
 		return 0;
 	}
+
 	*elf = (Elf32_Ehdr *)*fp;
+	while (strncmp(&((*elf)->e_ident[1]), "ELF", 3)) {
+		*fp = (uint8_t *)((char *)(*fp) + SBL_NAND_PREAMBLE);
+		*elf = (Elf32_Ehdr *)*fp;
+	}
 
 	*phdr = (Elf32_Phdr *)(*fp + (*elf)->e_phoff);
 	for (i = 0; i < (*elf)->e_phnum; i++, (*phdr)++) {
@@ -405,6 +420,56 @@ int get_sw_id_from_component_bin_elf(struct image_section *section)
 	return 1;
 }
 
+int find_mtd_part_size()
+{
+	char *mtdname = "kernel";
+	char prefix[] = "/dev/mtd";
+	char dev[PATH_MAX];
+	int i = -1, fd;
+	int vol_size;
+	int flag = 0;
+	char mtd_part[256];
+	FILE *fp = fopen("/proc/mtd", "r");
+	mtd_info_t mtd_dev_info;
+
+	if (fp == NULL) {
+		printf("Error finding mtd part\n");
+		return -1;
+	}
+
+	while (fgets(dev, sizeof(dev), fp)) {
+		if (strstr(dev, mtdname)) {
+			flag = 1;
+			break;
+		}
+		i++;
+	}
+	fclose(fp);
+
+	if (flag != 1) {
+		printf("%s block not found\n", mtdname);
+		return -1;
+	}
+
+	sprintf(mtd_part, "%s%d", prefix, i);
+
+	fd = open(mtd_part, O_RDWR);
+	if (fd == -1) {
+		return -1;
+	}
+
+	if (ioctl(fd, MEMGETINFO, &mtd_dev_info) == -1) {
+		printf("Error getting block size\n");
+		close(fd);
+		return -1;
+	}
+
+	vol_size = mtd_dev_info.erasesize;
+	close(fd);
+
+	return vol_size;
+}
+
 /**
  * In case of NAND image, Kernel image is ubinized & version information is
  * part of Kernel image. Hence need to un-ubinize the image.
@@ -415,24 +480,85 @@ int get_sw_id_from_component_bin_elf(struct image_section *section)
  * the VID(volume ID) header offset as well as Data offset.
  * Traverse to VID header offset & check the volume ID. If it is ZERO, Kernel
  * image is stored in this volume. Use Data offset to extract the Kernel image.
- * Since Kernel image has MBN header, use Total component size from MBN header
- * to copy the exact kernel image to a temporary location.
  *
  * @bin_file: struct image_section *
  */
 int extract_kernel_binary(struct image_section *section)
 {
-	//Not implemented yet
-	return 0;
+	struct ubi_ec_hdr *ubi_ec;
+	struct ubi_vid_hdr *ubi_vol;
+	uint8_t *fp;
+	int fd, ofd, magic, data_size, vid_hdr_offset, data_offset;
+	struct stat sb;
+
+	fd = open(section->tmp_file, O_RDONLY);
+	if (fd < 0) {
+		perror(section->tmp_file);
+		return 0;
+	}
+
+	if (fstat(fd, &sb) == -1) {
+		perror("fstat");
+		close(fd);
+		return 0;
+	}
+
+	fp = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (fp == MAP_FAILED) {
+		perror("mmap");
+		close(fd);
+		return 0;
+	}
+
+	ofd = open(section->file, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+	if (ofd == -1) {
+		perror(section->file);
+		close(fd);
+		return 0;
+	}
+
+	data_size = find_mtd_part_size();
+	if (data_size == -1) {
+		printf("Error finding data size\n");
+		return 0;
+	}
+
+	ubi_ec = (struct ubi_ec_hdr *)fp;
+	magic = be32_to_cpu(ubi_ec->magic);
+	while (magic == UBI_EC_HDR_MAGIC) {
+		vid_hdr_offset = be32_to_cpu(ubi_ec->vid_hdr_offset);
+		data_offset = be32_to_cpu(ubi_ec->data_offset);
+		ubi_vol = (struct ubi_vid_hdr *)((uint8_t *)ubi_ec + vid_hdr_offset);
+		magic = be32_to_cpu(ubi_vol->magic);
+		if (magic != UBI_VID_HDR_MAGIC) {
+			printf("Wrong ubi format\n");
+			close(ofd);
+			close(fd);
+			return 0;
+		}
+
+		if (ubi_vol->vol_id == 0) {
+			write(ofd, (void *)((uint8_t *)ubi_ec + data_offset), data_size);
+		}
+		if ((int)ubi_vol->vol_id > 0) {
+			break;
+		}
+
+		ubi_ec = (struct ubi_ec_hdr *)((uint8_t *)ubi_ec + data_offset + data_size);
+		magic = be32_to_cpu(ubi_ec->magic);
+	}
+
+	close(ofd);
+	close(fd);
+	printf("Kernel extracted from ubi image\n");
+	return 1;
 }
 
 /**
  * is_image_version_higher() iterates through each component and check
- * failsafe & non-failsafe versions against locally installed version.
+ * versions against locally installed version.
  * If newer component version is lower than locally insatlled image,
  * abort the FW upgrade process.
- * In case of NAND image, Kernel is ubinized, first extract the kernel
- * image out of it & then check against failsafe version.
  *
  * @img: char *
  */
@@ -465,9 +591,6 @@ int is_image_version_higher(void)
 
 /**
  * Update the version information file based on currently SW_ID being installed.
- * Write version information temporarily to /etc/config/version file before going
- * for reboot. After reboot, once Kernel loads, update the actual version
- * information file inside preini RC script.
  *
  */
 int update_version(void)
@@ -518,18 +641,18 @@ int check_image_version(void)
  * @sig: char *
  * @cert: char *
  */
-int split_code_signature_cert_from_component_bin(char *bin_file, char **src,
-		char **sig, char **cert)
+int split_code_signature_cert_from_component_bin(struct image_section *section,
+		char **src, char **sig, char **cert)
 {
 	Mbn_Hdr *mbn_hdr;
-	int fd = open(bin_file, O_RDONLY);
+	int fd = open(section->file, O_RDONLY);
 	uint8_t *fp;
 	int sig_offset;
 	int cert_offset;
 	struct stat sb;
 
 	if (fd == -1) {
-		perror(bin_file);
+		perror(section->file);
 		return 0;
 	}
 
@@ -549,10 +672,12 @@ int split_code_signature_cert_from_component_bin(char *bin_file, char **src,
 	mbn_hdr = (Mbn_Hdr *)fp;
 	if (mbn_hdr->image_size - mbn_hdr->code_size != SIG_CERT_SIZE) {
 		printf("Error: Image without version information\n");
+		close(fd);
 		return 0;
 	}
 	*src = malloc((mbn_hdr->code_size + 1) * sizeof(char));
 	if (*src == NULL) {
+		close(fd);
 		return 0;
 	}
 	memcpy(*src, fp, mbn_hdr->code_size);
@@ -592,7 +717,7 @@ int split_code_signature_cert_from_component_bin(char *bin_file, char **src,
  * @sig: char *
  * @cert: char *
  */
-int split_code_signature_cert_from_component_bin_elf(char *bin_file,
+int split_code_signature_cert_from_component_bin_elf(struct image_section *section,
 		char **src, char **sig, char **cert)
 {
 	Elf32_Ehdr *elf;
@@ -603,7 +728,7 @@ int split_code_signature_cert_from_component_bin_elf(char *bin_file,
 	int cert_offset;
 	int len;
 
-	if (!process_elf(bin_file, &fp, &elf, &phdr, &mbn_hdr)) {
+	if (!process_elf(section->file, &fp, &elf, &phdr, &mbn_hdr)) {
 		return 0;
 	}
 
@@ -707,7 +832,7 @@ char *create_xor_ipad_opad(char *f_xor, unsigned long long *xor_buffer)
 	fd = open(file, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fd == -1) {
 		perror(file);
-		return 0;
+		return NULL;
 	}
 	write(fd, xor_buffer, sizeof(*xor_buffer));
 	close(fd);
@@ -729,6 +854,7 @@ char *read_file(char *file_name)
 	fstat(fd, &st);
 	buffer = malloc(st.st_size * sizeof(buffer));
 	if (buffer == NULL) {
+		close(fd);
 		return NULL;
 	}
 	read(fd, buffer, st.st_size);
@@ -806,6 +932,9 @@ int is_component_authenticated(char *src, char *sig, char *cert)
 	sprintf(command, "openssl x509 -in cert -pubkey -inform DER -noout > %s", pub_file);
 	retval = system(command);
 	if (retval != 0) {
+		remove("src");
+		remove("sig");
+		remove("cert");
 		printf("Error generating public key\n");
 		return 0;
 	}
@@ -876,8 +1005,7 @@ int is_component_authenticated(char *src, char *sig, char *cert)
 /**
  * is_image_authenticated() iterates through each component and check
  * whether individual component is authenticated. If not, abort the FW
- * upgrade process. In case of NAND image, Kernel is ubinized, first
- * extract the kernel image out of it & then verify
+ * upgrade process.
  *
  * @img: char *
  */
@@ -889,7 +1017,7 @@ int is_image_authenticated(void)
 		if (!sections[i].is_present) {
 			continue;
 		}
-		if (!sections[i].split_components(sections[i].file, &src, &sig, &cert)) {
+		if (!sections[i].split_components(&sections[i], &src, &sig, &cert)) {
 			printf("Error while splitting code/signature/Certificate from %s\n",
 					sections[i].file);
 			return 0;
