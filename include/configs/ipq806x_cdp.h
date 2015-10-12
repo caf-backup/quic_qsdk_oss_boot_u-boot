@@ -146,6 +146,7 @@
 #include "../../board/qcom/ipq806x_cdp/ipq806x_cdp.h"
 extern loff_t board_env_offset;
 extern loff_t board_env_range;
+extern loff_t board_env_size;
 extern uint32_t flash_index;
 extern uint32_t flash_chip_select;
 extern uint32_t flash_block_size;
@@ -297,8 +298,8 @@ typedef struct {
 #define CONFIG_ENV_OFFSET               board_env_offset
 #define CONFIG_ENV_SECT_SIZE            flash_block_size
 #define CONFIG_ENV_SPI_BUS              flash_index
-#define CONFIG_ENV_RANGE		board_env_range
-#define CONFIG_ENV_SIZE                 CONFIG_ENV_RANGE
+#define CONFIG_ENV_RANGE		board_env_size
+#define CONFIG_ENV_SIZE                 board_env_range
 #else
 
 #error "Unsupported env. type, should be NAND (even for SPI Flash)."

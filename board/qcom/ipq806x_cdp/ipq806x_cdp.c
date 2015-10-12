@@ -70,6 +70,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 loff_t board_env_offset;
 loff_t board_env_range;
+loff_t board_env_size;
 extern int nand_env_device;
 #ifdef CONFIG_IPQ_MMC
 ipq_mmc mmc_host;
@@ -173,7 +174,6 @@ int board_init()
 	int ret;
 	uint32_t start_blocks;
 	uint32_t size_blocks;
-	loff_t board_env_size;
 
 #ifdef CONFIG_IPQ_REPORT_L2ERR
 	u32 l2esr;
@@ -666,7 +666,6 @@ int board_mmc_env_init(void)
 {
 	block_dev_desc_t *blk_dev;
 	disk_partition_t disk_info;
-	loff_t board_env_size;
 	int ret;
 
 	if (mmc_init(mmc_host.mmc)) {
