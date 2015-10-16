@@ -467,7 +467,6 @@ static int do_uartwr(cmd_tbl_t *cmdtp, int flag,
 	char *s = argv[2];
 	int port_no, port_max = IPQ_UART_MAX;
 	uart_cfg_t *uart_tmp_cfg = gboard_param->uart_cfg;
-	int i;
 
 	if (argc < 3)
 		goto usage;
@@ -510,7 +509,7 @@ static int do_uartrd(cmd_tbl_t *cmdtp, int flag,
 {
 	int byte;
 	uart_cfg_t *uart_tmp_cfg = gboard_param->uart_cfg;
-	int port_no, port_max = IPQ_UART_MAX, i;
+	int port_no, port_max = IPQ_UART_MAX;
 
 	if (argc < 2)
 		goto usage;

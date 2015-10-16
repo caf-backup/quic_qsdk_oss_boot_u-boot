@@ -502,7 +502,7 @@ uart_cfg_t gsbi1_console_uart = {
 	.gsbi_base	= UART_GSBI1_BASE,
 	.uart_dm_base   = UART1_DM_BASE,
 	.uart_mnd_value	= { .m_value = 48, .n_value = 125, .d_value = 63 },
-	.dbg_uart_gpio  = &gsbi1_gpio,
+	.dbg_uart_gpio  = gsbi1_gpio,
 };
 
 uart_cfg_t gsbi2_console_uart = {
@@ -510,7 +510,7 @@ uart_cfg_t gsbi2_console_uart = {
 	.gsbi_base	= UART_GSBI2_BASE,
 	.uart_dm_base   = UART2_DM_BASE,
 	.uart_mnd_value	= { .m_value = 12, .n_value = 625, .d_value = 313 },
-	.dbg_uart_gpio  = &gsbi2_gpio,
+	.dbg_uart_gpio  = gsbi2_gpio,
 };
 
 uart_cfg_t gsbi4_console_uart = {
@@ -518,7 +518,7 @@ uart_cfg_t gsbi4_console_uart = {
 	.gsbi_base	= UART_GSBI4_BASE,
 	.uart_dm_base   = UART4_DM_BASE,
 	.uart_mnd_value	= { .m_value = 12, .n_value = 625, .d_value = 313 },
-	.dbg_uart_gpio  = &gsbi4_gpio,
+	.dbg_uart_gpio  = gsbi4_gpio,
 };
 
 #define gmac_board_cfg(_b, _sec, _p, _p0, _p1, _mp, _pn, ...)		\
@@ -540,7 +540,7 @@ uart_cfg_t gsbi4_console_uart = {
 	.gsbi_base		= UART_GSBI##_b##_BASE,					\
 	.uart_dm_base		= UART##_b##_DM_BASE,					\
 	.uart_mnd_value		= { .m_value = _m, .n_value = _n, .d_value = _d },	\
-	.dbg_uart_gpio		= &gsbi##_b##_gpio,					\
+	.dbg_uart_gpio		= gsbi##_b##_gpio,					\
 }
 
 #define gmac_board_cfg_invalid()	{ .unit = -1, }
