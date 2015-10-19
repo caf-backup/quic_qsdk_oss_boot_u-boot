@@ -529,6 +529,8 @@ static int do_uartrd(cmd_tbl_t *cmdtp, int flag,
 				byte = (int)uart_word & 0xff;
 				switch (byte) {
 					case 0x03:
+						uart_word = uart_word >> 8;
+						uart_valid_data--;
 						return (-1);
 					default:
 						serial_putc(byte);
