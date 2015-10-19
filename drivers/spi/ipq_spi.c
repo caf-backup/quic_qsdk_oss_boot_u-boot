@@ -8,9 +8,9 @@
 #include <malloc.h>
 #include <asm/io.h>
 #include <asm/errno.h>
+#include <asm/arch-ipq806x/iomap.h>
 #include "ipq_spi.h"
 #include <asm/arch-ipq806x/gpio.h>
-#include <asm/arch-ipq806x/iomap.h>
 
 #define SUCCESS		0
 
