@@ -19,14 +19,14 @@ struct image_section {
 	int max_version;
 	char file[256];
 	char *type;
-	char *tmp_file;
+	char tmp_file[256];
 	int img_version;
 	int local_version;
 	char *version_file;
 	int is_present;
 	int (*pre_op)(struct image_section *);
 	int (*get_sw_id)(struct image_section *);
-	int (*split_components)(char *, char **, char**, char**);
+	int (*split_components)(struct image_section *, char **, char**, char**);
 };
 
 typedef struct mbn_header {
@@ -54,8 +54,8 @@ int extract_kernel_binary(struct image_section *);
 int is_image_version_higher(void);
 int update_version(void);
 int check_image_version(void);
-int split_code_signature_cert_from_component_bin(char *, char **, char **, char **);
-int split_code_signature_cert_from_component_bin_elf(char *, char **, char **, char **);
+int split_code_signature_cert_from_component_bin(struct image_section *, char **, char **, char **);
+int split_code_signature_cert_from_component_bin_elf(struct image_section *, char **, char **, char **);
 void generate_swid_ipad(char *, unsigned long long *);
 void generate_hwid_opad(char *, char *, char *, unsigned long long *);
 int generate_hash(char *, char *, char *);
