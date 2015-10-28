@@ -73,7 +73,7 @@ typedef struct {
 
 kernel_img_info_t kernel_img_info;
 
-static void update_dtb_config_name(void)
+static void update_dtb_config_name(uint32_t addr)
 {
 	struct fdt_property *imginfop;
 	int nodeoffset;
@@ -81,10 +81,10 @@ static void update_dtb_config_name(void)
 	/*
 	* construt the dtb config name upon image info property
 	*/
-	nodeoffset = fdt_path_offset(img_addr, "/image-info");
+	nodeoffset = fdt_path_offset(addr, "/image-info");
 
 	if(nodeoffset >= 0) {
-		imginfop = fdt_get_property(img_addr, nodeoffset,
+		imginfop = fdt_get_property(addr, nodeoffset,
 					"type", NULL);
 		if(imginfop) {
 			if (strcmp(imginfop->data, "multiplatform") != 0) {
@@ -459,7 +459,7 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 	if (ret)
 		return CMD_RET_FAILURE;
 
-	update_dtb_config_name();
+	update_dtb_config_name(request);
 	snprintf(runcmd, sizeof(runcmd), "bootm 0x%x%s\n", request,
 		dtb_config_name);
 
@@ -614,7 +614,7 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 		if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 			return CMD_RET_FAILURE;
 
-		update_dtb_config_name();
+		update_dtb_config_name(img_addr);
 		snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
 				CONFIG_SYS_LOAD_ADDR,
 				dtb_config_name);
@@ -636,7 +636,7 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 			if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 				return CMD_RET_FAILURE;
 
-			update_dtb_config_name();
+			update_dtb_config_name(img_addr);
 			snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
 				CONFIG_SYS_LOAD_ADDR,
 				dtb_config_name);
@@ -658,7 +658,7 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 		if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 			return CMD_RET_FAILURE;
 
-		update_dtb_config_name();
+		update_dtb_config_name(img_addr);
 
 		snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
 			CONFIG_SYS_LOAD_ADDR,
