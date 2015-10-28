@@ -38,8 +38,6 @@ void ipq_register_switch(int(*sw_init)(ipq_gmac_board_cfg_t *cfg))
 static void config_auto_neg(struct eth_device *dev)
 {
 	struct ipq_eth_dev *priv = dev->priv;
-	int phy_status;
-	int status;
 	u8  phy_addr;
 
 	if (priv->forced_params->is_forced) {
@@ -755,7 +753,7 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 
 		ipq_gmac_mii_clk_init(ipq_gmac_macs[i], clk_div_val, gmac_cfg);
 
-		strcpy(ipq_gmac_macs[i]->phy_name, gmac_cfg->phy_name);
+		strcpy((char *)ipq_gmac_macs[i]->phy_name, gmac_cfg->phy_name);
 		bb_nodes[i] = malloc(sizeof(struct bitbang_nodes));
 		if (bb_nodes[i] == NULL)
 			goto failed;
@@ -988,7 +986,7 @@ struct bb_miiphy_bus bb_miiphy_buses[] = {
 };
 int bb_miiphy_buses_num = ARRAY_SIZE(bb_miiphy_buses);
 
-static int ipq_eth_unregister()
+static int ipq_eth_unregister(void)
 {
 	int i;
 	struct eth_device *dev;
@@ -1021,7 +1019,7 @@ static int do_force_eth_speed(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	ipq_gmac_board_cfg_t *gmac_tmp_cfg = gboard_param->gmac_cfg;
 
-	if (strict_strtoul(argv[1], 16, &phy_addr) < 0) {
+	if (strict_strtoul(argv[1], 16, (unsigned long *)&phy_addr) < 0) {
 		ipq_info("Invalid Phy addr configured\n");
 		return CMD_RET_USAGE;
 	}

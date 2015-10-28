@@ -60,7 +60,8 @@
 /* GPIO TLMM: Status */
 #define GPIO_OE_DISABLE	0
 #define GPIO_OE_ENABLE	1
-
+int gpio_get_value(unsigned int gpio);
+void gpio_set_value(unsigned int gpio, int what);
 void gpio_tlmm_config(unsigned int gpio, unsigned int func,
                       unsigned int dir, unsigned int pull,
                       unsigned int drvstr, unsigned int enable);

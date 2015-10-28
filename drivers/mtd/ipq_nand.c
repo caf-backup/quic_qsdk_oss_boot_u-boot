@@ -1539,9 +1539,9 @@ static int nand_get_info(struct mtd_info *mtd, uint32_t flash_id)
 int ipq_nand_scan(struct mtd_info *mtd)
 {
 	int ret;
-	uint32_t nand_id1;
-	uint32_t nand_id2;
-	uint32_t onfi_sig;
+	uint32_t nand_id1 = 0;
+	uint32_t nand_id2 = 0;
+	uint32_t onfi_sig = 0;
 	struct nand_chip *chip = MTD_NAND_CHIP(mtd);
 
 	ret = ipq_nand_onfi_probe(mtd, &onfi_sig);
@@ -1719,7 +1719,7 @@ int ipq_nand_post_scan_init(struct mtd_info *mtd, enum ipq_nand_layout layout)
 	struct nand_chip *chip = MTD_NAND_CHIP(mtd);
 	struct nand_onfi_params *nand_onfi = MTD_ONFI_PARAMS(mtd);
 	int ret = 0;
-	char *buf;
+	u_char *buf;
 
 	alloc_size = (mtd->writesize   /* For dev->pad_dat */
 		      + mtd->oobsize   /* For dev->pad_oob */
