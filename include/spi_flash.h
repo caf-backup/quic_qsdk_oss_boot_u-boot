@@ -60,6 +60,8 @@ struct spi_flash {
 	int		(*berase)(struct spi_flash *flash); /* Bulk Erase */
 };
 
+int spi_flash_cmd_berase(struct spi_flash *flash, u8 erase_cmd);
+
 struct spi_flash *spi_flash_probe(unsigned int bus, unsigned int cs,
 		unsigned int max_hz, unsigned int spi_mode);
 void spi_flash_free(struct spi_flash *flash);

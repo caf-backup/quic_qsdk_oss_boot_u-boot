@@ -161,7 +161,6 @@ struct spi_flash *spi_flash_probe_spansion(struct spi_slave *spi, u8 *idcode)
 	const struct spansion_spi_flash_params *params;
 	struct spi_flash *flash;
 	unsigned int i;
-	int ret;
 	unsigned short jedec, ext_jedec;
 
 	jedec = idcode[1] << 8 | idcode[2];
