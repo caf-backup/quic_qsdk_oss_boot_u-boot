@@ -89,6 +89,8 @@ extern void mmc_env_relocate_spec(void);
 extern int nand_env_init(void);
 extern int nand_saveenv(void);
 extern void nand_env_relocate_spec(void);
+extern int fdt_node_set_part_info(void *blob,
+			int parent_offset, struct mtd_device *dev);
 /*
  * Don't have this as a '.bss' variable. The '.bss' and '.rel.dyn'
  * sections seem to overlap.
