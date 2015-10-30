@@ -196,6 +196,7 @@ typedef struct {
 	int dev_num;
 } ipq_mmc;
 
+int mmc_initialize(bd_t *bis);
 extern ipq_mmc mmc_host;
 int ipq_mmc_init(bd_t *, ipq_mmc *);
 void board_mmc_deinit(void);

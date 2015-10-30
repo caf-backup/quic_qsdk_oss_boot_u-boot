@@ -81,25 +81,25 @@ static void update_dtb_config_name(uint32_t addr)
 	/*
 	* construt the dtb config name upon image info property
 	*/
-	nodeoffset = fdt_path_offset(addr, "/image-info");
+	nodeoffset = fdt_path_offset((const void *)addr, "/image-info");
 
 	if(nodeoffset >= 0) {
-		imginfop = fdt_get_property(addr, nodeoffset,
+		imginfop = ( struct fdt_property *)fdt_get_property((const void *)addr, nodeoffset,
 					"type", NULL);
 		if(imginfop) {
 			if (strcmp(imginfop->data, "multiplatform") != 0) {
 				printf("node property is not set, using default dtb config\n");
-				snprintf(dtb_config_name,
+				snprintf((char *)dtb_config_name,
 					sizeof(dtb_config_name),"%s","");
 			}
 		} else {
 			printf("node property is unavailable, using default dtb config\n");
-			snprintf(dtb_config_name,
+			snprintf((char *)dtb_config_name,
 				sizeof(dtb_config_name),"%s","");
 		}
 
 	} else {
-		snprintf(dtb_config_name,
+		snprintf((char *)dtb_config_name,
 			sizeof(dtb_config_name),"#config@%d",SOCINFO_VERSION_MAJOR(soc_version));
 	}
 }
@@ -150,7 +150,7 @@ static int load_nss_img(const char *runcmd, char *args, int argslen,
  */
 static int set_fs_bootargs(int *fs_on_nand)
 {
-	char *bootargs;
+	char *bootargs = NULL;
 #ifdef CONFIG_IPQ_MMC
 	char emmc_rootfs[30];
 	block_dev_desc_t *blk_dev = mmc_get_dev(host->dev_num);
@@ -215,7 +215,7 @@ static int set_fs_bootargs(int *fs_on_nand)
  * Inovke the dump routine and in case of failure, do not stop unless the user
  * requested to stop
  */
-static int inline do_dumpipq_data()
+static int inline do_dumpipq_data(void)
 {
 	uint64_t etime;
 
@@ -490,7 +490,7 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 	char bootargs[IH_NMLEN+32];
 #endif
 	char runcmd[256];
-	int nandid = 0, ret;
+	int  ret;
 	unsigned int active_part = 0;
 
 #ifdef CONFIG_IPQ_MMC
@@ -539,7 +539,6 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 
 	/* check the smem info to see which flash used for booting */
 	if (sfi->flash_type == SMEM_BOOT_SPI_FLASH) {
-		nandid = 1;
 		if (debug) {
 			printf("Using nand device 1\n");
 		}
@@ -614,7 +613,7 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 		if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 			return CMD_RET_FAILURE;
 
-		update_dtb_config_name(img_addr);
+		update_dtb_config_name((uint32_t)img_addr);
 		snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
 				CONFIG_SYS_LOAD_ADDR,
 				dtb_config_name);
@@ -636,7 +635,7 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 			if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 				return CMD_RET_FAILURE;
 
-			update_dtb_config_name(img_addr);
+			update_dtb_config_name((uint32_t)img_addr);
 			snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
 				CONFIG_SYS_LOAD_ADDR,
 				dtb_config_name);
@@ -658,7 +657,7 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 		if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 			return CMD_RET_FAILURE;
 
-		update_dtb_config_name(img_addr);
+		update_dtb_config_name((uint32_t)img_addr);
 
 		snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
 			CONFIG_SYS_LOAD_ADDR,
@@ -698,7 +697,7 @@ static int do_bootipq(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 			CONFIG_IPQ_FDT_HIGH);
 	}
 
-	if(!ipq_smem_get_socinfo_version(&soc_version))
+	if(!ipq_smem_get_socinfo_version((uint32_t *)&soc_version))
 		debug("Soc version is = %x \n", SOCINFO_VERSION_MAJOR(soc_version));
 	else
 		printf("Cannot get socinfo, using defaults\n");
@@ -706,7 +705,7 @@ static int do_bootipq(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	ret = scm_call(SCM_SVC_FUSE, QFPROM_IS_AUTHENTICATE_CMD,
 			NULL, 0, &buf, sizeof(char));
 
-	sprintf(dtb_config_name,
+	sprintf((char *)dtb_config_name,
 		"#config@%d_%d", gboard_param->machid, SOCINFO_VERSION_MAJOR(soc_version));
 
 	if (ret == 0 && buf == 1) {
