@@ -152,7 +152,10 @@ static int set_fs_bootargs(int *fs_on_nand)
 {
 	char *bootargs = NULL;
 #ifdef CONFIG_IPQ_MMC
-	char emmc_rootfs[30];
+#define STRING(VALUE) #VALUE
+#define STRINGIFY(VALUE) STRING(VALUE)
+#define EMMC_MAX_ARGS "root=/dev/mmcblk0p" STRINGIFY(-INT_MAX) " rootwait"
+	char emmc_rootfs[sizeof(EMMC_MAX_ARGS)];
 	block_dev_desc_t *blk_dev = mmc_get_dev(host->dev_num);
 	disk_partition_t disk_info;
 	int pos;

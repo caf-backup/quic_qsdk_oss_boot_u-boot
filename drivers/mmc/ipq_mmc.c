@@ -281,6 +281,9 @@ int ipq_mmc_init(bd_t *bis, ipq_mmc *host)
 	struct mmc *mmc;
 
 	mmc = malloc(sizeof(struct mmc));
+	if (NULL == mmc)
+		return -1;
+
 	memset(mmc, 0, sizeof(struct mmc));
 
 	sprintf(mmc->name, "ipq_mmc");
