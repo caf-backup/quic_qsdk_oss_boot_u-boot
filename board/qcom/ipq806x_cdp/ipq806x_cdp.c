@@ -808,9 +808,15 @@ void ft_board_setup(void *blob, bd_t *bd)
 
 		ipq_get_part_details();
 		if (sfi->rootfs.offset == 0xBAD0FF5E ) {
-			snprintf(parts_str, sizeof(parts_str),
-				"mtdparts=nand0:0x%x@0(rootfs);nand1",
-				IPQ_NAND_ROOTFS_SIZE);
+			if (!get_rootfs_active_partition()) {
+				snprintf(parts_str, sizeof(parts_str),
+						"mtdparts=nand0:0x%x@0(rootfs),0x%x@0x%x(rootfs_1);nand1",
+						IPQ_NAND_ROOTFS_SIZE, IPQ_NAND_ROOTFS_SIZE, IPQ_NAND_ROOTFS_SIZE);
+			} else {
+				snprintf(parts_str, sizeof(parts_str),
+						"mtdparts=nand0:0x%x@0x%x(rootfs),0x%x@0(rootfs_1);nand1",
+						IPQ_NAND_ROOTFS_SIZE, IPQ_NAND_ROOTFS_SIZE, IPQ_NAND_ROOTFS_SIZE);
+			}
 			mtdparts = parts_str;
 		} else {
 			mtdparts = "mtdparts=nand1";

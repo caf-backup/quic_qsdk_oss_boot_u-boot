@@ -86,10 +86,9 @@ struct per_part_info
 {
 	char name[ALT_PART_NAME_LENGTH];
 	uint32_t primaryboot;
-	uint32_t upgraded;
 };
 
-#define NUM_ALT_PARTITION 3
+#define NUM_ALT_PARTITION 8
 typedef struct
 {
 #define _SMEM_DUAL_BOOTINFO_MAGIC       0xA5A3A1A0
@@ -110,7 +109,6 @@ typedef struct
 typedef struct
 {
 	uint32_t magic_start;
-	uint32_t upgradeinprogress;
 	uint32_t age;
 	uint32_t numaltpart;
 	struct per_part_info per_part_entry[NUM_ALT_PARTITION];

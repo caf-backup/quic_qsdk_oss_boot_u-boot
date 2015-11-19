@@ -221,23 +221,13 @@ int smem_bootconfig_info(void)
 	unsigned ret;
 
 	ret = smem_read_alloc_entry(SMEM_BOOT_DUALPARTINFO,
-		&ipq_smem_bootconfig_info, sizeof(ipq_smem_bootconfig_info_t));
-
-	if (ret != 0) {
-		ret = smem_read_alloc_entry(SMEM_BOOT_DUALPARTINFO,
 			&ipq_smem_bootconfig_v2_info, sizeof(ipq_smem_bootconfig_v2_info_t));
 
-		if (ret != 0)
-			return -ENOMSG;
+	if (ret != 0)
+		return -ENOMSG;
 
-		if ((ipq_smem_bootconfig_v2_info.magic_start != SMEM_DUAL_BOOTINFO_MAGIC_START)
+	if ((ipq_smem_bootconfig_v2_info.magic_start != SMEM_DUAL_BOOTINFO_MAGIC_START)
 			|| (ipq_smem_bootconfig_v2_info.magic_end != SMEM_DUAL_BOOTINFO_MAGIC_END))
-			return -ENOMSG;
-
-		return 0;
-	}
-
-	if (ipq_smem_bootconfig_info.magic != _SMEM_DUAL_BOOTINFO_MAGIC)
 		return -ENOMSG;
 
 	return 0;
@@ -248,38 +238,23 @@ unsigned int get_rootfs_active_partition(void)
 	int i;
 
 	ret = smem_read_alloc_entry(SMEM_BOOT_DUALPARTINFO,
-		&ipq_smem_bootconfig_info, sizeof(ipq_smem_bootconfig_info_t));
-
-	if (ret != 0) {
-		ret = smem_read_alloc_entry(SMEM_BOOT_DUALPARTINFO,
 			&ipq_smem_bootconfig_v2_info, sizeof(ipq_smem_bootconfig_v2_info_t));
 
-		if (ret != 0)
-			return 0;
+	if (ret != 0)
+		return 0;
 
-		if ((ipq_smem_bootconfig_v2_info.magic_start != SMEM_DUAL_BOOTINFO_MAGIC_START)
+	if ((ipq_smem_bootconfig_v2_info.magic_start != SMEM_DUAL_BOOTINFO_MAGIC_START)
 			|| (ipq_smem_bootconfig_v2_info.magic_end != SMEM_DUAL_BOOTINFO_MAGIC_END))
-			return 0;
-
-		for (i = 0; i < ipq_smem_bootconfig_v2_info.numaltpart; i++) {
-			if (strncmp("rootfs", ipq_smem_bootconfig_v2_info.per_part_entry[i].name,
-				     ALT_PART_NAME_LENGTH) == 0)
-				return ipq_smem_bootconfig_v2_info.per_part_entry[i].primaryboot;
-		}
-
-		return 0;
-	}
-
-	if (ipq_smem_bootconfig_info.magic != _SMEM_DUAL_BOOTINFO_MAGIC)
 		return 0;
 
-	for (i = 0; i < ipq_smem_bootconfig_info.numaltpart; i++) {
-		if (strncmp("rootfs", ipq_smem_bootconfig_info.per_part_entry[i].name,
-			     ALT_PART_NAME_LENGTH) == 0)
-			return ipq_smem_bootconfig_info.per_part_entry[i].primaryboot;
+	for (i = 0; i < ipq_smem_bootconfig_v2_info.numaltpart; i++) {
+		if (strncmp("rootfs", ipq_smem_bootconfig_v2_info.per_part_entry[i].name,
+					ALT_PART_NAME_LENGTH) == 0)
+			return ipq_smem_bootconfig_v2_info.per_part_entry[i].primaryboot;
 	}
 
 	return 0;
+
 }
 unsigned int get_partition_table_offset(void)
 {

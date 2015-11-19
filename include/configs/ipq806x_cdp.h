@@ -100,7 +100,7 @@
 
 #define V_PROMPT                        "(IPQ) # "
 #define CONFIG_SYS_PROMPT               V_PROMPT
-#define CONFIG_SYS_CBSIZE               (256 * 2) /* Console I/O Buffer Size */
+#define CONFIG_SYS_CBSIZE               (512 * 2) /* Console I/O Buffer Size */
 
 #define CONFIG_SYS_INIT_SP_ADDR         CONFIG_SYS_SDRAM_BASE + GENERATED_IPQ_RESERVE_SIZE - GENERATED_GBL_DATA_SIZE
 #define CONFIG_SYS_MAXARGS              16
