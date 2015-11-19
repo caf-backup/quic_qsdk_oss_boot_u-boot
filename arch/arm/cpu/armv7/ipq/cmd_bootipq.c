@@ -122,7 +122,7 @@ static int load_nss_img(const char *runcmd, char *args, int argslen,
 		return ret;
 	}
 
-	sprintf(cmd, "bootm start 0x%x; bootm loados", CONFIG_SYS_LOAD_ADDR);
+	snprintf(cmd, sizeof(cmd), "bootm start 0x%x; bootm loados", CONFIG_SYS_LOAD_ADDR);
 
 	if (debug)
 		printf(cmd);
@@ -332,7 +332,7 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 	 * for more details
 	 */
 	if (sfi->nss[0].size != 0xBAD0FF5E) {
-		sprintf(runcmd, "nand read 0x%x 0x%llx 0x%llx",
+		snprintf(runcmd, sizeof(runcmd), "nand read 0x%x 0x%llx 0x%llx",
 				CONFIG_SYS_LOAD_ADDR,
 				sfi->nss[0].offset, sfi->nss[0].size);
 
@@ -347,7 +347,7 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 	}
 
 	if (sfi->nss[1].size != 0xBAD0FF5E) {
-		sprintf(runcmd, "nand read 0x%x 0x%llx 0x%llx",
+		snprintf(runcmd, sizeof(runcmd), "nand read 0x%x 0x%llx 0x%llx",
 				CONFIG_SYS_LOAD_ADDR,
 				sfi->nss[1].offset, sfi->nss[1].size);
 
@@ -563,7 +563,7 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 	 * for more details
 	 */
 	if (sfi->nss[0].size != 0xBAD0FF5E) {
-		sprintf(runcmd, "nand read 0x%x 0x%llx 0x%llx",
+		snprintf(runcmd, sizeof(runcmd), "nand read 0x%x 0x%llx 0x%llx",
 				CONFIG_SYS_LOAD_ADDR,
 				sfi->nss[0].offset, sfi->nss[0].size);
 
@@ -578,7 +578,7 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 	}
 
 	if (sfi->nss[1].size != 0xBAD0FF5E) {
-		sprintf(runcmd, "nand read 0x%x 0x%llx 0x%llx",
+		snprintf(runcmd, sizeof(runcmd), "nand read 0x%x 0x%llx 0x%llx",
 				CONFIG_SYS_LOAD_ADDR,
 				sfi->nss[1].offset, sfi->nss[1].size);
 
@@ -706,7 +706,7 @@ static int do_bootipq(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	ret = scm_call(SCM_SVC_FUSE, QFPROM_IS_AUTHENTICATE_CMD,
 			NULL, 0, &buf, sizeof(char));
 
-	sprintf(dtb_config_name,
+	snprintf((char *)dtb_config_name, sizeof(dtb_config_name),
 		"#config@%d_%d", gboard_param->machid, SOCINFO_VERSION_MAJOR(soc_version));
 
 	if (ret == 0 && buf == 1) {

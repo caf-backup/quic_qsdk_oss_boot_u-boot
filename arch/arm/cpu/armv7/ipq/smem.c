@@ -451,10 +451,11 @@ static char parts[4096];
 char *ipq_smem_part_to_mtdparts(char *mtdid)
 {
 	ipq_smem_flash_info_t *sfi = &ipq_smem_flash_info;
-	int i, l;
+	int i, l, r;
 	char *part = parts, *unit;
 
-	part += sprintf(part, "%s:", mtdid);
+	r = snprintf(part, sizeof(parts), "%s:", mtdid);
+	part += r;
 
 	for (i = 0; i < smem_ptable.len; i++) {
 		struct smem_ptn *p = &smem_ptable.parts[i];
@@ -481,9 +482,11 @@ char *ipq_smem_part_to_mtdparts(char *mtdid)
 			unit = "@";
 		}
 
-		l = sprintf(part, "%lld%s0x%llx(%s),", psize, unit,
+		l = snprintf(part, sizeof(parts) - r, "%lld%s0x%llx(%s),",
+				psize, unit,
 				((loff_t)p->start) * sfi->flash_block_size,
 				p->name);
+		r += l;
 		part += l;
 	}
 

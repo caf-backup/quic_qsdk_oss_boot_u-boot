@@ -662,7 +662,7 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		dev[i]->write_hwaddr = ipq_eth_wr_macaddr;
 		dev[i]->priv = (void *) ipq_gmac_macs[i];
 
-		sprintf(dev[i]->name, "eth%d", i);
+		snprintf(dev[i]->name, sizeof(dev[i]->name), "eth%d", i);
 
 		/*
 		 * Setting the Default MAC address if the MAC read from ART partition
@@ -681,7 +681,7 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 			 * dts entry for the ethernet entries, which in turn
 			 * will be picked up by the HLOS driver
 			 */
-			sprintf(mac, "%x:%x:%x:%x:%x:%x",
+			snprintf(mac, sizeof(mac), "%x:%x:%x:%x:%x:%x",
 					dev[i]->enetaddr[0], dev[i]->enetaddr[1],
 					dev[i]->enetaddr[2], dev[i]->enetaddr[3],
 					dev[i]->enetaddr[4], dev[i]->enetaddr[5]);
@@ -755,7 +755,8 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 
 		ipq_gmac_mii_clk_init(ipq_gmac_macs[i], clk_div_val, gmac_cfg);
 
-		strcpy(ipq_gmac_macs[i]->phy_name, gmac_cfg->phy_name);
+		strncpy((char *)ipq_gmac_macs[i]->phy_name, gmac_cfg->phy_name,
+					sizeof(ipq_gmac_macs[i]->phy_name));
 		bb_nodes[i] = malloc(sizeof(struct bitbang_nodes));
 		if (bb_nodes[i] == NULL)
 			goto failed;
@@ -763,7 +764,8 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		bb_nodes[i]->mdio = gboard_param->gmac_gpio[0].gpio;
 		bb_nodes[i]->mdc = gboard_param->gmac_gpio[1].gpio;
 		bb_miiphy_buses[i].priv = bb_nodes[i];
-		strcpy(bb_miiphy_buses[i].name, gmac_cfg->phy_name);
+		strncpy(bb_miiphy_buses[i].name, gmac_cfg->phy_name,
+					sizeof(bb_miiphy_buses[i].name));
 		miiphy_register(bb_miiphy_buses[i].name, bb_miiphy_read, bb_miiphy_write);
 
 		eth_register(dev[i]);
@@ -783,7 +785,8 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		bb_nodes[i]->mdio = gboard_param->ar8033_gpio[0].gpio;
 		bb_nodes[i]->mdc = gboard_param->ar8033_gpio[1].gpio;
 		bb_miiphy_buses[i].priv = bb_nodes[i];
-		strcpy(bb_miiphy_buses[i].name, "8033");
+		strncpy(bb_miiphy_buses[i].name, "8033",
+				sizeof(bb_miiphy_buses[i].name));
 		miiphy_register(bb_miiphy_buses[i].name, bb_miiphy_read, bb_miiphy_write);
 	}
 
