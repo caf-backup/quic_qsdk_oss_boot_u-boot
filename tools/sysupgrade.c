@@ -129,13 +129,15 @@ int get_sections(void)
 		for (i = 0, sec = &sections[0]; i < NO_OF_SECTIONS; i++, sec++) {
 			if (strstr(file->d_name, sec->type)) {
 				if (sec->pre_op) {
-					strcat(sec->tmp_file, file->d_name);
+					strlcat(sec->tmp_file, file->d_name,
+							sizeof(sec->tmp_file));
 					if (!sec->pre_op(sec)) {
 						printf("Error extracting kernel from ubi\n");
 						return 0;
 					}
 				} else {
-					strcat(sec->file, file->d_name);
+					strlcat(sec->file, file->d_name,
+							sizeof(sec->file));
 				}
 				if (!sec->get_sw_id(sec)) {
 					closedir(dir);
@@ -266,7 +268,7 @@ char *find_value(char *buffer, char *search, int size)
 	for (i = 0; i < CERT_SIZE; i++) {
 		for (j = 0; search[j] && (buffer[i + j] == search[j]); j++);
 		if (search[j] == '\0') {
-			strncpy(value, &buffer[i - size], size);
+			strlcpy(value, &buffer[i - size], size);
 			value[size - 1] = '\0';
 			return value;
 		}
@@ -451,7 +453,7 @@ int find_mtd_part_size()
 		return -1;
 	}
 
-	sprintf(mtd_part, "%s%d", prefix, i);
+	snprintf(mtd_part, sizeof(mtd_part), "%s%d", prefix, i);
 
 	fd = open(mtd_part, O_RDWR);
 	if (fd == -1) {
@@ -877,11 +879,11 @@ int generate_hash(char *cert, char *sw_file, char *hw_file)
 	printf("oem_id=%s\toem_model_id=%s\n", oem_id_str, oem_model_id_str);
 	generate_swid_ipad(sw_id_str, &swid_xor_ipad);
 	tmp = create_xor_ipad_opad(f_sw_xor, &swid_xor_ipad);
-	strcpy(sw_file, tmp);
+	strlcpy(sw_file, tmp, sizeof(sw_file));
 	free(tmp);
 	generate_hwid_opad(hw_id_str, oem_id_str, oem_model_id_str, &hwid_xor_opad);
 	tmp = create_xor_ipad_opad(f_hw_xor, &hwid_xor_opad);
-	strcpy(hw_file, tmp);
+	strlcpy(hw_file, tmp, sizeof(hw_file));
 	free(tmp);
 	free(sw_id_str);
 	free(hw_id_str);
@@ -929,7 +931,8 @@ int is_component_authenticated(char *src, char *sig, char *cert)
 	}
 
 	pub_file = mktemp(pub_key);
-	sprintf(command, "openssl x509 -in cert -pubkey -inform DER -noout > %s", pub_file);
+	snprintf(command, sizeof(command),
+		"openssl x509 -in cert -pubkey -inform DER -noout > %s", pub_file);
 	retval = system(command);
 	if (retval != 0) {
 		remove("src");
@@ -941,7 +944,8 @@ int is_component_authenticated(char *src, char *sig, char *cert)
 
 	generate_hash(cert, sw_file, hw_file);
 	code_file = mktemp(code_hash);
-	sprintf(command, "openssl dgst -sha256 -binary -out %s src", code_file);
+	snprintf(command, sizeof(command),
+		"openssl dgst -sha256 -binary -out %s src", code_file);
 	retval = system(command);
 	if (retval != 0) {
 		remove_file(sw_file, hw_file, code_file, pub_file);
@@ -950,7 +954,8 @@ int is_component_authenticated(char *src, char *sig, char *cert)
 	}
 
 	tmp_file = mktemp(tmp_hash);
-	sprintf(command, "cat %s %s | openssl dgst -sha256 -binary -out %s",
+	snprintf(command, sizeof(command),
+		"cat %s %s | openssl dgst -sha256 -binary -out %s",
 						sw_file, code_file, tmp_file);
 	retval = system(command);
 	if (retval != 0) {
@@ -961,7 +966,8 @@ int is_component_authenticated(char *src, char *sig, char *cert)
 	}
 
 	computed_file = mktemp(f_computed_hash);
-	sprintf(command, "cat %s %s | openssl dgst -sha256 -binary -out %s",
+	snprintf(command, sizeof(command),
+		"cat %s %s | openssl dgst -sha256 -binary -out %s",
 						hw_file, tmp_file, computed_file);
 	retval = system(command);
 	if (retval != 0) {
@@ -973,7 +979,8 @@ int is_component_authenticated(char *src, char *sig, char *cert)
 	}
 
 	reference_file = mktemp(f_reference_hash);
-	sprintf(command, "openssl rsautl -in sig -pubin -inkey %s -verify > %s",
+	snprintf(command, sizeof(command),
+		"openssl rsautl -in sig -pubin -inkey %s -verify > %s",
 						pub_file, reference_file);
 	retval = system(command);
 	if (retval != 0) {

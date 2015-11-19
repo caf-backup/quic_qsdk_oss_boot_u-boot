@@ -286,7 +286,7 @@ int ipq_mmc_init(bd_t *bis, ipq_mmc *host)
 
 	memset(mmc, 0, sizeof(struct mmc));
 
-	sprintf(mmc->name, "ipq_mmc");
+	snprintf(mmc->name, sizeof(mmc->name), "ipq_mmc");
 	mmc->priv = host;
 	mmc->send_cmd = ipq_mmc_send_cmd;
 	mmc->set_ios = ipq_set_ios;
