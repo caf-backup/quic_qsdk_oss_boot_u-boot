@@ -321,7 +321,7 @@ int get_sw_id_from_component_bin(struct image_section *section)
 
 	cert_offset = mbn_hdr->cert_ptr - mbn_hdr->image_dest_ptr + 40;
 	printf("Image with version information\n");
-	sw_version = find_value(fp + cert_offset, "SW_ID", 17);
+	sw_version = find_value((char *)(fp + cert_offset), "SW_ID", 17);
 	if (sw_version != NULL) {
 		sw_version[8] = '\0';
 		sscanf(sw_version, "%x", &section->img_version);
@@ -358,7 +358,7 @@ int process_elf(char *bin_file, uint8_t **fp, Elf32_Ehdr **elf, Elf32_Phdr **phd
 	}
 
 	*elf = (Elf32_Ehdr *)*fp;
-	while (strncmp(&((*elf)->e_ident[1]), "ELF", 3)) {
+	while (strncmp((char *)&((*elf)->e_ident[1]), "ELF", 3)) {
 		*fp = (uint8_t *)((char *)(*fp) + SBL_NAND_PREAMBLE);
 		*elf = (Elf32_Ehdr *)*fp;
 	}
@@ -411,7 +411,7 @@ int get_sw_id_from_component_bin_elf(struct image_section *section)
 
 	cert_offset = mbn_hdr->cert_ptr - mbn_hdr->image_dest_ptr + 40;
 	printf("Image with version information\n");
-	sw_version = find_value(fp + phdr->p_offset + cert_offset, "SW_ID", 17);
+	sw_version = find_value((char *)(fp + phdr->p_offset + cert_offset), "SW_ID", 17);
 	if (sw_version) {
 		sw_version[8] = '\0';
 		sscanf(sw_version, "%x", &section->img_version);
@@ -422,7 +422,7 @@ int get_sw_id_from_component_bin_elf(struct image_section *section)
 	return 1;
 }
 
-int find_mtd_part_size()
+int find_mtd_part_size(void)
 {
 	char *mtdname = "kernel";
 	char prefix[] = "/dev/mtd";

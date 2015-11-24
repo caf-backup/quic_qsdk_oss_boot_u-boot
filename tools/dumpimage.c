@@ -9,7 +9,7 @@
 #include "dumpimage.h"
 #include <image.h>
 #include <version.h>
-
+#include <sysupgrade.h>
 static void usage(void);
 
 /* image_type_params linked list to maintain registered image types supports */
