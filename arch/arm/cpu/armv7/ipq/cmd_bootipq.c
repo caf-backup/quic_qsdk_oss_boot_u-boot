@@ -400,9 +400,9 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 			sfi->flash_secondary_type == SMEM_BOOT_MMC_FLASH) {
 		active_part = get_rootfs_active_partition();
 		if (active_part) {
-			ret = find_part_efi(blk_dev, "kernel_1", &disk_info);
+			ret = find_part_efi(blk_dev, "0:HLOS_1", &disk_info);
 		} else {
-			ret = find_part_efi(blk_dev, "kernel", &disk_info);
+			ret = find_part_efi(blk_dev, "0:HLOS", &disk_info);
 		}
 
 		if (ret > 0) {
@@ -625,9 +625,9 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 			sfi->flash_secondary_type == SMEM_BOOT_MMC_FLASH) {
 		active_part = get_rootfs_active_partition();
 		if (active_part) {
-			ret = find_part_efi(blk_dev, "kernel_1", &disk_info);
+			ret = find_part_efi(blk_dev, "0:HLOS_1", &disk_info);
 		} else {
-			ret = find_part_efi(blk_dev, "kernel", &disk_info);
+			ret = find_part_efi(blk_dev, "0:HLOS", &disk_info);
 		}
 
 		if (ret > 0) {
