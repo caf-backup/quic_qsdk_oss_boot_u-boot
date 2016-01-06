@@ -372,6 +372,7 @@ struct ipq_eth_dev {
 	struct eth_device *dev;
 	const char phy_name[MDIO_NAME_LEN];
 	struct ipq_forced_mode *forced_params;
+	ipq_gmac_board_cfg_t	*gmac_board_cfg;
 } __attribute__ ((aligned(8)));
 
 struct eth_mac_regs {
