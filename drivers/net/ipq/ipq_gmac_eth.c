@@ -29,6 +29,8 @@ static struct ipq_eth_dev *ipq_gmac_macs[IPQ_GMAC_NMACS];
 static int (*ipq_switch_init)(ipq_gmac_board_cfg_t *cfg);
 static struct ipq_forced_mode get_params;
 static struct bitbang_nodes *bb_nodes[IPQ_GMAC_NMACS];
+static void ipq_gmac_mii_clk_init(struct ipq_eth_dev *priv, uint clk_div,
+				ipq_gmac_board_cfg_t *gmac_cfg);
 
 void ipq_register_switch(int(*sw_init)(ipq_gmac_board_cfg_t *cfg))
 {
@@ -319,7 +321,74 @@ static inline u32 ipq_gmac_is_desc_empty(ipq_gmac_desc_t *fr)
 	return ((fr->length & DescSize1Mask) == 0);
 }
 
-static int ipq_eth_init(struct eth_device *dev, bd_t *this)
+static int ipq_eth_update(struct eth_device *dev, bd_t *this)
+{
+	struct ipq_eth_dev *priv = dev->priv;
+	uint clk_div_val;
+	uint phy_status;
+	uint cur_speed;
+	uint cur_duplex;
+
+	phy_status = readl(QSGMII_REG_BASE +
+				PCS_QSGMII_MAC_STAT);
+
+	if (PCS_QSGMII_MAC_LINK(phy_status, priv->mac_unit)) {
+		cur_speed = PCS_QSGMII_MAC_SPEED(phy_status,
+				priv->mac_unit);
+		cur_duplex = PCS_QSGMII_MAC_DUPLEX(phy_status,
+				priv->mac_unit);
+
+		if (cur_speed != priv->speed || cur_duplex != priv->duplex) {
+			ipq_info("Link %x status changed\n", priv->mac_unit);
+			if (priv->duplex)
+				ipq_info("Full duplex link\n");
+			else
+				ipq_info("Half duplex link\n");
+
+			ipq_info("Link %x up, Phy_status = %x\n",
+					priv->mac_unit, phy_status);
+
+			switch (cur_speed) {
+			case SPEED_1000M:
+				ipq_info("Port:%d speed 1000Mbps\n",
+					priv->mac_unit);
+				priv->mac_ps = GMII_PORT_SELECT;
+				clk_div_val = (CLK_DIV_SGMII_1000M - 1);
+				break;
+
+			case SPEED_100M:
+				ipq_info("Port:%d speed 100Mbps\n",
+					priv->mac_unit);
+				priv->mac_ps = MII_PORT_SELECT;
+				clk_div_val = (CLK_DIV_SGMII_100M - 1);
+				break;
+
+			case SPEED_10M:
+				ipq_info("Port:%d speed 10Mbps\n",
+					priv->mac_unit);
+				priv->mac_ps = MII_PORT_SELECT;
+				clk_div_val = (CLK_DIV_SGMII_10M - 1);
+				break;
+
+			default:
+				ipq_info("Port speed unknown\n");
+				return -1;
+			}
+
+			priv->speed = cur_speed;
+			priv->duplex = cur_duplex;
+
+			ipq_gmac_mii_clk_init(priv, clk_div_val,
+				priv->gmac_board_cfg);
+		}
+	} else {
+		return -1;
+	}
+
+	return 0;
+}
+
+int ipq_eth_init(struct eth_device *dev, bd_t *this)
 {
 	struct ipq_eth_dev *priv = dev->priv;
 	struct eth_dma_regs *dma_reg = (struct eth_dma_regs *)priv->dma_regs_p;
@@ -328,10 +397,21 @@ static int ipq_eth_init(struct eth_device *dev, bd_t *this)
 	if (!(priv->forced_params->is_forced && (priv->mac_unit == GMAC_UNIT2 ||
 						 priv->mac_unit == GMAC_UNIT3))) {
 		if (ipq_phy_link_status(dev) != 0) {
-				ipq_info("Mac%x unit failed\n", priv->mac_unit);
+			ipq_info("Mac%x unit failed\n", priv->mac_unit);
+			return -1;
+		}
+
+		if (priv->gmac_board_cfg->mac_conn_to_phy) {
+			/* Check the current speed and duplex mode and change
+			   the MAC settings according to it */
+			if (ipq_eth_update(dev, this) != 0) {
+				ipq_info("Mac%x settings update failed\n",
+					priv->mac_unit);
 				return -1;
+			}
 		}
 	}
+
 	priv->next_rx = 0;
 	priv->next_tx = 0;
 
@@ -708,6 +788,8 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		ipq_gmac_macs[i]->interface = gmac_cfg->phy;
 		ipq_gmac_macs[i]->phy_address = gmac_cfg->phy_addr.addr;
 		ipq_gmac_macs[i]->no_of_phys = gmac_cfg->phy_addr.count;
+		ipq_gmac_macs[i]->gmac_board_cfg = gmac_cfg;
+
 		if (get_params.gmac_port == gmac_cfg->unit) {
 			ipq_gmac_macs[i]->forced_params = &get_params;
 		}
