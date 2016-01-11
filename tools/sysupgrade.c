@@ -247,8 +247,8 @@ int get_local_image_version(struct image_section *section)
 
 	fstat(fd, &st);
 
-	len = st.st_size < sizeof(local_version_string) ? st.st_size :
-							sizeof(local_version_string);
+	len = st.st_size < sizeof(local_version_string) - 1 ? st.st_size :
+							sizeof(local_version_string) - 1;
 	read(fd, local_version_string, len);
 	local_version_string[len] = '\0';
 	close(fd);
@@ -932,20 +932,48 @@ int generate_hash(char *cert, char *sw_file, char *hw_file)
 	char f_sw_xor[] = "/tmp/swid_xor_XXXXXX";
 	char f_hw_xor[] = "/tmp/hwid_xor_XXXXXX";
 
+	if (sw_id_str == NULL || hw_id_str == NULL || oem_id_str == NULL || oem_model_id_str == NULL) {
+		if (sw_id_str != NULL) {
+			free(sw_id_str);
+		}
+		if (hw_id_str != NULL) {
+			free(hw_id_str);
+		}
+		if (oem_id_str != NULL) {
+			free(oem_id_str);
+		}
+		if (oem_model_id_str != NULL) {
+			free(oem_model_id_str);
+		}
+		return 0;
+	}
 	printf("sw_id=%s\thw_id=%s\t", sw_id_str, hw_id_str);
 	printf("oem_id=%s\toem_model_id=%s\n", oem_id_str, oem_model_id_str);
+
 	generate_swid_ipad(sw_id_str, &swid_xor_ipad);
 	tmp = create_xor_ipad_opad(f_sw_xor, &swid_xor_ipad);
-	if (!tmp)
-		return 1;
+	if (tmp == NULL) {
+		free(sw_id_str);
+		free(hw_id_str);
+		free(oem_id_str);
+		free(oem_model_id_str);
+		return 0;
+	}
 	strlcpy(sw_file, tmp, 32);
 	free(tmp);
+
 	generate_hwid_opad(hw_id_str, oem_id_str, oem_model_id_str, &hwid_xor_opad);
 	tmp = create_xor_ipad_opad(f_hw_xor, &hwid_xor_opad);
-	if (!tmp)
-		return 1;
+	if (tmp == NULL) {
+		free(sw_id_str);
+		free(hw_id_str);
+		free(oem_id_str);
+		free(oem_model_id_str);
+		return 0;
+	}
 	strlcpy(hw_file, tmp, 32);
 	free(tmp);
+
 	free(sw_id_str);
 	free(hw_id_str);
 	free(oem_id_str);
@@ -1003,7 +1031,11 @@ int is_component_authenticated(char *src, char *sig, char *cert)
 		return 0;
 	}
 
-	generate_hash(cert, sw_file, hw_file);
+	retval = generate_hash(cert, sw_file, hw_file);
+	if (retval == 0) {
+		return 0;
+	}
+
 	code_file = mktemp(code_hash);
 	snprintf(command, sizeof(command),
 		"openssl dgst -sha256 -binary -out %s src", code_file);
@@ -1055,6 +1087,14 @@ int is_component_authenticated(char *src, char *sig, char *cert)
 
 	computed_hash = read_file(computed_file);
 	reference_hash = read_file(reference_file);
+	if (computed_hash == NULL || reference_hash == NULL) {
+		remove_file(sw_file, hw_file, code_file, pub_file);
+		remove(tmp_file);
+		remove(computed_file);
+		remove(reference_file);
+		free(computed_hash?computed_hash:reference_hash);
+		return 0;
+	}
 
 	remove_file(sw_file, hw_file, code_file, pub_file);
 	remove(tmp_file);
