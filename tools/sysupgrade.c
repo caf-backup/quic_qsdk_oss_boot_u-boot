@@ -935,10 +935,14 @@ int generate_hash(char *cert, char *sw_file, char *hw_file)
 	printf("oem_id=%s\toem_model_id=%s\n", oem_id_str, oem_model_id_str);
 	generate_swid_ipad(sw_id_str, &swid_xor_ipad);
 	tmp = create_xor_ipad_opad(f_sw_xor, &swid_xor_ipad);
+	if (!tmp)
+		return 1;
 	strlcpy(sw_file, tmp, 32);
 	free(tmp);
 	generate_hwid_opad(hw_id_str, oem_id_str, oem_model_id_str, &hwid_xor_opad);
 	tmp = create_xor_ipad_opad(f_hw_xor, &hwid_xor_opad);
+	if (!tmp)
+		return 1;
 	strlcpy(hw_file, tmp, 32);
 	free(tmp);
 	free(sw_id_str);
