@@ -208,7 +208,7 @@ static int set_fs_bootargs(int *fs_on_nand)
 		return -EINVAL;
 	}
 
-	if (getenv("fsbootargs") == NULL)
+	if ((getenv("fsbootargs") == NULL) && (bootargs != NULL))
 		setenv("fsbootargs", bootargs);
 
 	return run_command("setenv bootargs ${bootargs} ${fsbootargs}", 0);
