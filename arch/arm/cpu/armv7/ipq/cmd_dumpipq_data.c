@@ -122,8 +122,8 @@ static int do_dumpipq_data(cmd_tbl_t *cmdtp, int flag, int argc,
 		}
 	}
 
-	if (getenv("dumpdir") != NULL) {
-		dumpdir = getenv("dumpdir");
+	dumpdir = getenv("dumpdir");
+	if (dumpdir != NULL) {
 		printf("Using directory %s in TFTP server\n", dumpdir);
 	} else {
 		printf("Env 'dumpdir' not set. Using / dir in TFTP server\n");
