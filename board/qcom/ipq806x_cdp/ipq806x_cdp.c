@@ -621,6 +621,35 @@ void ipq_configure_gpio(gpio_func_data_t *gpio, uint count)
 	}
 }
 
+static void ipq806x_set_ethmac_addr(void)
+{
+	int i, ret;
+	uchar enetaddr[IPQ_GMAC_NMACS * 6];
+	uchar *mac_addr;
+	char ethaddr[16] = "ethaddr";
+	char mac[64];
+	/* Get the MAC address from ART partition */
+	ret = get_eth_mac_address(enetaddr, IPQ_GMAC_NMACS);
+	for (i = 0; (ret >= 0) && (i < IPQ_GMAC_NMACS); i++) {
+		mac_addr = &enetaddr[i * 6];
+		if (!is_valid_ether_addr(mac_addr)) {
+			printf("eth%d MAC Address from ART is not valid\n", i);
+		} else {
+			/*
+			 * U-Boot uses these to patch the 'local-mac-address'
+			 * dts entry for the ethernet entries, which in turn
+			 * will be picked up by the HLOS driver
+			 */
+			sprintf(mac, "%x:%x:%x:%x:%x:%x",
+					mac_addr[0], mac_addr[1],
+					mac_addr[2], mac_addr[3],
+					mac_addr[4], mac_addr[5]);
+			setenv(ethaddr, mac);
+		}
+		sprintf(ethaddr, "eth%daddr", (i + 1));
+	}
+}
+
 int board_eth_init(bd_t *bis)
 {
 	int status;
@@ -832,6 +861,9 @@ void ft_board_setup(void *blob, bd_t *bd)
 	setenv("mtdparts", mtdparts);
 
 	ipq_fdt_fixup_mtdparts(blob, nodes);
+
+	ipq806x_set_ethmac_addr();
+	fdt_fixup_ethernet(blob);
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
 
