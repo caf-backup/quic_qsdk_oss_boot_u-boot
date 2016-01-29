@@ -337,7 +337,8 @@ int process_elf(char *bin_file, uint8_t **fp, Elf32_Ehdr **elf, Elf32_Phdr **phd
 {
 	int fd = open(bin_file, O_RDONLY);
 	struct stat sb;
-	int version, i;
+	int version = 0;
+	int i = 0;
 
 	if (fd < 0) {
 		perror(bin_file);
