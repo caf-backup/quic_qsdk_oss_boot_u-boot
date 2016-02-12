@@ -641,6 +641,7 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(2),
 		},
 #endif /* CONFIG_IPQ806X_PCI */
+		.dtb_config_name ={ "db149", "v2.0-db149", "v3.0-db149"},
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_DB149_1XX,
@@ -913,6 +914,7 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(2),
 		},
 #endif /* CONFIG_IPQ806X_PCI */
+		.dtb_config_name = { "ap148", "v2.0-ap148", "v3.0-ap148"},
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP148_1XX,
@@ -969,6 +971,7 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(2),
 		},
 #endif /* CONFIG_IPQ806X_PCI */
+		.dtb_config_name = { "ap148_1xx", "v2.0-ap148_1xx", "v3.0-ap148_1xx"},
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP145,
@@ -1021,6 +1024,7 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(2),
 		},
 #endif /* CONFIG_IPQ806X_PCI */
+		.dtb_config_name = { "ap145", "v2.0-ap145", "v3.0-ap145"},
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP145_1XX,
@@ -1073,6 +1077,7 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(2),
 		},
 #endif /* CONFIG_IPQ806X_PCI */
+		.dtb_config_name = { "ap145_1xx", "v2.0-ap145_1xx", "v3.0-ap145_1xx"},
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP160,
@@ -1125,6 +1130,7 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(2),
 		},
 #endif /* CONFIG_IPQ806X_PCI */
+		.dtb_config_name = { "ap160", "v2.0-ap160", "v3.0-ap160"},
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP160_2XX,
@@ -1177,6 +1183,7 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(2),
 		},
 #endif /* CONFIG_IPQ806X_PCI */
+		.dtb_config_name = { "ap160_2xx", "v2.0-ap160_2xx", "v3.0-ap160_2xx"},
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AK01_1XX,
@@ -1281,6 +1288,7 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(2),
 		},
 #endif /* CONFIG_IPQ806X_PCI */
+		.dtb_config_name = { "ap161", "v2.0-ap161", "v3.0-ap161"},
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_STORM,
