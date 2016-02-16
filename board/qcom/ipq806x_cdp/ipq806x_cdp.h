@@ -14,6 +14,7 @@
 
 #ifndef  _IPQ806X_CDP_H_
 #define  _IPQ806X_CDP_H_
+#define MAX_CONF_NAME		5
 
 #include <configs/ipq806x_cdp.h>
 #include <phy.h>
@@ -165,6 +166,7 @@ typedef struct {
 	gpio_func_data_t *emmc_gpio;
 	unsigned int emmc_gpio_count;
 #endif
+	const char *dtb_config_name[MAX_CONF_NAME];
 } __attribute__ ((__packed__)) board_ipq806x_params_t;
 
 extern board_ipq806x_params_t *gboard_param;

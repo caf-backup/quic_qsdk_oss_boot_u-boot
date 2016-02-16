@@ -46,7 +46,7 @@ static ipq_mmc *host = &mmc_host;
 #endif
 
 #define DTB_CFG_LEN		64
-static unsigned char dtb_config_name[DTB_CFG_LEN];
+static char dtb_config_name[DTB_CFG_LEN];
 
 typedef struct {
 	unsigned int image_type;
@@ -79,8 +79,8 @@ static void update_dtb_config_name(uint32_t addr)
 	int nodeoffset;
 
 	/*
-	* construt the dtb config name upon image info property
-	*/
+	 * construt the dtb config name upon image info property
+	 */
 	nodeoffset = fdt_path_offset((const void *)addr, "/image-info");
 
 	if(nodeoffset >= 0) {
@@ -101,6 +101,25 @@ static void update_dtb_config_name(uint32_t addr)
 	} else {
 		snprintf((char *)dtb_config_name,
 			sizeof(dtb_config_name),"#config@%d",SOCINFO_VERSION_MAJOR(soc_version));
+		/*
+		 * Using dtb_config_name + 1 to remove '#' from dtb_config_name.
+		 */
+		if (fit_conf_get_node((void *)addr, (dtb_config_name + 1)) < 0) {
+			/*
+			 * Fetching the dtb_config_name based on the soc version
+			 * of the board.
+			 */
+			snprintf((char *)dtb_config_name, sizeof(dtb_config_name), "#config@%s",
+				gboard_param->dtb_config_name
+				[(SOCINFO_VERSION_MAJOR(soc_version) - 1)]);
+			if (fit_conf_get_node((void *)addr, (dtb_config_name + 1)) < 0) {
+				/*
+				 * For .itb of a specific soc version in a board.
+				 */
+				snprintf((char *)dtb_config_name, sizeof(dtb_config_name),
+					"#config@1");
+			}
+		}
 	}
 }
 
