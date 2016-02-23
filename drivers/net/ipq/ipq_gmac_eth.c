@@ -709,6 +709,7 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 	struct eth_device *dev[IPQ_GMAC_NMACS];
 	uint clk_div_val;
 	uchar enet_addr[IPQ_GMAC_NMACS * 6];
+	uchar *mac_addr;
 	char ethaddr[16] = "ethaddr";
 	char mac[64];
 	int i;
@@ -859,6 +860,27 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 			}
 		}
 	}
+
+	/* set the mac address in environment for unconfigured GMAC */
+	if (ret >= 0) {
+		for (; i < IPQ_GMAC_NMACS; i++) {
+			mac_addr = &enet_addr[i * 6];
+			if (is_valid_ether_addr(mac_addr)) {
+				/*
+				 * U-Boot uses these to patch the 'local-mac-address'
+				 * dts entry for the ethernet entries, which in turn
+				 * will be picked up by the HLOS driver
+				 */
+				sprintf(mac, "%x:%x:%x:%x:%x:%x",
+						mac_addr[0], mac_addr[1],
+						mac_addr[2], mac_addr[3],
+						mac_addr[4], mac_addr[5]);
+				setenv(ethaddr, mac);
+			}
+			sprintf(ethaddr, "eth%daddr", (i + 1));
+		}
+	}
+
 	if (gboard_param->ar8033_gpio) {
 		bb_nodes[i] = malloc(sizeof(struct bitbang_nodes));
 		memset(bb_nodes[i], 0, sizeof(struct bitbang_nodes));
