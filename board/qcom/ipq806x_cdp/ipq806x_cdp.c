@@ -32,6 +32,7 @@
 #include <mmc.h>
 #include <environment.h>
 #include <watchdog.h>
+#include <malloc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -560,6 +561,8 @@ int get_eth_mac_address(uchar *enetaddr, uint no_of_macs)
 	block_dev_desc_t *blk_dev;
 	disk_partition_t disk_info;
 	struct mmc *mmc;
+	u8 *tmp_block_buf;
+	u32 blks_cnt;
 #endif
 
 	if (sfi->flash_type != SMEM_BOOT_MMC_FLASH) {
@@ -599,8 +602,22 @@ int get_eth_mac_address(uchar *enetaddr, uint no_of_macs)
 		 */
 		if (ret > 0) {
 			mmc = mmc_host.mmc;
-			ret = mmc->block_dev.block_read(mmc_host.dev_num, disk_info.start, disk_info.size,
-										enetaddr);
+			blks_cnt = (length / disk_info.blksz) + 1;
+			if (blks_cnt > disk_info.size)
+				blks_cnt = disk_info.size;
+
+			tmp_block_buf = malloc(blks_cnt * disk_info.blksz);
+
+			if (NULL == tmp_block_buf) {
+				printf("memory allocation failed..\n");
+				return -ENOMEM;
+			}
+
+			ret = mmc->block_dev.block_read(mmc_host.dev_num,
+					disk_info.start, blks_cnt,
+					tmp_block_buf);
+			memcpy(enetaddr, tmp_block_buf, length);
+			free(tmp_block_buf);
 		}
 
 		if (ret < 0)
