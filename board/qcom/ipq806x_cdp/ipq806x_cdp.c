@@ -32,6 +32,7 @@
 #include <mmc.h>
 #include <environment.h>
 #include <watchdog.h>
+#include <malloc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -560,6 +561,8 @@ int get_eth_mac_address(uchar *enetaddr, uint no_of_macs)
 	block_dev_desc_t *blk_dev;
 	disk_partition_t disk_info;
 	struct mmc *mmc;
+	u8 *tmp_block_buf;
+	u32 blks_cnt;
 #endif
 
 	if (sfi->flash_type != SMEM_BOOT_MMC_FLASH) {
@@ -599,8 +602,22 @@ int get_eth_mac_address(uchar *enetaddr, uint no_of_macs)
 		 */
 		if (ret > 0) {
 			mmc = mmc_host.mmc;
-			ret = mmc->block_dev.block_read(mmc_host.dev_num, disk_info.start, disk_info.size,
-										enetaddr);
+			blks_cnt = (length / disk_info.blksz) + 1;
+			if (blks_cnt > disk_info.size)
+				blks_cnt = disk_info.size;
+
+			tmp_block_buf = malloc(blks_cnt * disk_info.blksz);
+
+			if (NULL == tmp_block_buf) {
+				printf("memory allocation failed..\n");
+				return -ENOMEM;
+			}
+
+			ret = mmc->block_dev.block_read(mmc_host.dev_num,
+					disk_info.start, blks_cnt,
+					tmp_block_buf);
+			memcpy(enetaddr, tmp_block_buf, length);
+			free(tmp_block_buf);
 		}
 
 		if (ret < 0)
@@ -618,35 +635,6 @@ void ipq_configure_gpio(gpio_func_data_t *gpio, uint count)
 		gpio_tlmm_config(gpio->gpio, gpio->func, gpio->out,
 				gpio->pull, gpio->drvstr, gpio->oe);
 		gpio++;
-	}
-}
-
-static void ipq806x_set_ethmac_addr(void)
-{
-	int i, ret;
-	uchar enetaddr[IPQ_GMAC_NMACS * 6];
-	uchar *mac_addr;
-	char ethaddr[16] = "ethaddr";
-	char mac[64];
-	/* Get the MAC address from ART partition */
-	ret = get_eth_mac_address(enetaddr, IPQ_GMAC_NMACS);
-	for (i = 0; (ret >= 0) && (i < IPQ_GMAC_NMACS); i++) {
-		mac_addr = &enetaddr[i * 6];
-		if (!is_valid_ether_addr(mac_addr)) {
-			printf("eth%d MAC Address from ART is not valid\n", i);
-		} else {
-			/*
-			 * U-Boot uses these to patch the 'local-mac-address'
-			 * dts entry for the ethernet entries, which in turn
-			 * will be picked up by the HLOS driver
-			 */
-			sprintf(mac, "%x:%x:%x:%x:%x:%x",
-					mac_addr[0], mac_addr[1],
-					mac_addr[2], mac_addr[3],
-					mac_addr[4], mac_addr[5]);
-			setenv(ethaddr, mac);
-		}
-		sprintf(ethaddr, "eth%daddr", (i + 1));
 	}
 }
 
@@ -861,8 +849,6 @@ void ft_board_setup(void *blob, bd_t *bd)
 	setenv("mtdparts", mtdparts);
 
 	ipq_fdt_fixup_mtdparts(blob, nodes);
-
-	ipq806x_set_ethmac_addr();
 	fdt_fixup_ethernet(blob);
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
