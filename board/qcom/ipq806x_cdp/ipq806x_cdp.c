@@ -951,6 +951,35 @@ static void ipq_pcie_config_controller(int id)
 
 }
 
+static void ipq_wifi_pci_power_enable(void)
+{
+	unsigned int i;
+	gpio_func_data_t	*gpio_data;
+
+	for (i=0; i < gboard_param->wifi_pcie_power_gpio_cnt; i++) {
+		gpio_data = gboard_param->wifi_pcie_power_gpio[i];
+		if (gpio_data->gpio != -1) {
+			gpio_tlmm_config(gpio_data->gpio, gpio_data->func,
+					gpio_data->out,	gpio_data->pull,
+					gpio_data->drvstr, gpio_data->oe);
+			ipq_pci_gpio_set(gpio_data->gpio, 1);
+		}
+	}
+}
+
+static void ipq_wifi_pci_power_disable(void)
+{
+	unsigned int i;
+	gpio_func_data_t	*gpio_data;
+
+	for (i=0; i < gboard_param->wifi_pcie_power_gpio_cnt; i++) {
+		gpio_data = gboard_param->wifi_pcie_power_gpio[i];
+		if (gpio_data->gpio != -1) {
+			ipq_pci_gpio_set(gpio_data->gpio, 0);
+		}
+	}
+}
+
 void board_pci_init()
 {
 	int i,j;
@@ -959,6 +988,7 @@ void board_pci_init()
 	uint32_t val;
 
 	ipq_pci_gpio_fixup();
+	ipq_wifi_pci_power_enable();
 
 	for (i = 0; i < PCI_MAX_DEVICES; i++) {
 		cfg = &gboard_param->pcie_cfg[i];
@@ -1060,5 +1090,6 @@ void board_pci_deinit()
 		pcie_clock_shutdown(cfg->pci_clks);
 	}
 
+	ipq_wifi_pci_power_disable();
 }
 #endif /* CONFIG_IPQ806X_PCI */
