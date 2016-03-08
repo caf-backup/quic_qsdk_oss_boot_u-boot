@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -161,6 +161,8 @@ typedef struct {
 #endif
 #ifdef CONFIG_IPQ806X_PCI
 	pcie_params_t	pcie_cfg[PCI_MAX_DEVICES];
+	unsigned int wifi_pcie_power_gpio_cnt;
+	gpio_func_data_t *wifi_pcie_power_gpio[PCI_MAX_DEVICES];
 #endif
 #ifdef CONFIG_IPQ_MMC
 	gpio_func_data_t *emmc_gpio;
