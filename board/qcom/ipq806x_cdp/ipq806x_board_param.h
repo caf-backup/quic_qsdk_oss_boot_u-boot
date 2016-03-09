@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -280,7 +280,8 @@ gpio_func_data_t ar8033_gpio[] = {
 #define PCIE_RST_GPIO           3
 #define PCIE_1_RST_GPIO         48
 #define PCIE_2_RST_GPIO         63
-
+#define WIFI_PCIE_1_POWER_GPIO	9
+#define WIFI_PCIE_2_POWER_GPIO	26
 
 gpio_func_data_t pci_0_rst_gpio = {
 		.gpio = PCIE_RST_GPIO,
@@ -301,6 +302,22 @@ gpio_func_data_t pci_1_rst_gpio = {
 gpio_func_data_t pci_2_rst_gpio = {
 		.gpio = PCIE_2_RST_GPIO,
 		.func = 1,
+		.pull = GPIO_PULL_UP,
+		.drvstr = GPIO_12MA,
+		.oe = GPIO_OE_ENABLE
+};
+
+gpio_func_data_t wifi_pcie_1_power_gpio = {
+		.gpio = WIFI_PCIE_1_POWER_GPIO,
+		.func = 0,
+		.pull = GPIO_PULL_UP,
+		.drvstr = GPIO_12MA,
+		.oe = GPIO_OE_ENABLE
+};
+
+gpio_func_data_t wifi_pcie_2_power_gpio = {
+		.gpio = WIFI_PCIE_2_POWER_GPIO,
+		.func = 0,
 		.pull = GPIO_PULL_UP,
 		.drvstr = GPIO_12MA,
 		.oe = GPIO_OE_ENABLE
@@ -1129,6 +1146,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
 		},
+		.wifi_pcie_power_gpio_cnt = 2,
+		.wifi_pcie_power_gpio = {
+			&wifi_pcie_1_power_gpio,
+			&wifi_pcie_2_power_gpio,
+		},
 #endif /* CONFIG_IPQ806X_PCI */
 		.dtb_config_name = { "ap160", "v2.0-ap160", "v3.0-ap160"},
 	},
@@ -1181,6 +1203,11 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(0),
 			pcie_board_cfg(1),
 			pcie_board_cfg(2),
+		},
+		.wifi_pcie_power_gpio_cnt = 2,
+		.wifi_pcie_power_gpio = {
+			&wifi_pcie_1_power_gpio,
+			&wifi_pcie_2_power_gpio,
 		},
 #endif /* CONFIG_IPQ806X_PCI */
 		.dtb_config_name = { "ap160_2xx", "v2.0-ap160_2xx", "v3.0-ap160_2xx"},
