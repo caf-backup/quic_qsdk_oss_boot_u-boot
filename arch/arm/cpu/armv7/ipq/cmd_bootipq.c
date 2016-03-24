@@ -406,7 +406,7 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 
 
 		if (debug)
-			printf(runcmd);
+			printf("%s\n", runcmd);
 
 		if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 			return CMD_RET_FAILURE;
@@ -448,7 +448,7 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 			request, sfi->hlos.offset, sfi->hlos.size);
 
 		if (debug)
-			printf(runcmd);
+			printf("%s\n", runcmd);
 
 		if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 			return CMD_RET_FAILURE;
@@ -486,7 +486,7 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 		dtb_config_name);
 
 	if (debug)
-		printf(runcmd);
+		printf("%s\n", runcmd);
 
 #ifdef CONFIG_IPQ_MMC
 	board_mmc_deinit();
@@ -688,7 +688,7 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 	}
 
 	if (debug)
-		printf(runcmd);
+		printf("%s\n", runcmd);
 
 #ifdef CONFIG_IPQ_MMC
 	board_mmc_deinit();
