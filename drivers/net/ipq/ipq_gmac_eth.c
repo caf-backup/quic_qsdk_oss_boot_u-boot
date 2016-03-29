@@ -710,7 +710,7 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 	uint clk_div_val;
 	uchar enet_addr[IPQ_GMAC_NMACS * 6];
 	uchar *mac_addr;
-	char ethaddr[16] = "ethaddr";
+	char ethaddr[32] = "ethaddr";
 	char mac[64];
 	int i;
 	int ret;
