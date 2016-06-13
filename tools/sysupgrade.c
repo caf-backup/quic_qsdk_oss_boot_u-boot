@@ -39,7 +39,8 @@
 #define MBN_HDR_SIZE		40
 #define SIG_SIZE		256
 #define NOT_PRESENT		0
-#define SIG_CERT_SIZE		6400
+#define SIG_CERT_2_SIZE	4352
+#define SIG_CERT_3_SIZE	6400
 #define SBL_NAND_PREAMBLE	10240
 #define SBL_HDR_RESERVED	12
 
@@ -341,6 +342,7 @@ int get_sw_id_from_component_bin(struct image_section *section)
 	uint8_t *fp;
 	int cert_offset;
 	char *sw_version;
+	int sig_cert_size;
 
 	if (fd == -1) {
 		perror(section->file);
@@ -364,7 +366,8 @@ int get_sw_id_from_component_bin(struct image_section *section)
 	if (strstr(section->file, sections[4].type)) {
 		mbn_hdr = (Mbn_Hdr *)(fp + SBL_NAND_PREAMBLE + SBL_HDR_RESERVED);
 	}
-	if (mbn_hdr->image_size - mbn_hdr->code_size != SIG_CERT_SIZE) {
+	sig_cert_size = mbn_hdr->image_size - mbn_hdr->code_size;
+	if (sig_cert_size != SIG_CERT_2_SIZE && sig_cert_size != SIG_CERT_3_SIZE) {
 		printf("Error: Image without version information\n");
 		close(fd);
 		return 0;
@@ -704,6 +707,7 @@ int split_code_signature_cert_from_component_bin(struct image_section *section,
 	int sig_offset = 0;
 	int cert_offset = 0;
 	struct stat sb;
+	int sig_cert_size;
 
 	if (fd == -1) {
 		perror(section->file);
@@ -729,7 +733,8 @@ int split_code_signature_cert_from_component_bin(struct image_section *section,
 		sig_offset = SBL_NAND_PREAMBLE + MBN_HDR_SIZE;
 		cert_offset = SBL_NAND_PREAMBLE + MBN_HDR_SIZE;
 	}
-	if (mbn_hdr->image_size - mbn_hdr->code_size != SIG_CERT_SIZE) {
+	sig_cert_size = mbn_hdr->image_size - mbn_hdr->code_size;
+	if (sig_cert_size != SIG_CERT_2_SIZE && sig_cert_size != SIG_CERT_3_SIZE) {
 		printf("Error: Image without version information\n");
 		close(fd);
 		return 0;
