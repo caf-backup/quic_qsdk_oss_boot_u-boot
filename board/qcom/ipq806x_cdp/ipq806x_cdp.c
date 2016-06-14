@@ -849,6 +849,9 @@ void ft_board_setup(void *blob, bd_t *bd)
 	setenv("mtdparts", mtdparts);
 
 	ipq_fdt_fixup_mtdparts(blob, nodes);
+	if (0 != ipq_fdt_fixup_socinfo(blob))
+		printf("ipq: fdt fixup failed for socinfo\n");
+
 	fdt_fixup_ethernet(blob);
 }
 #endif /* CONFIG_OF_BOARD_SETUP */
