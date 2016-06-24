@@ -490,11 +490,12 @@ void ipq_get_part_details(void)
 #ifdef CONFIG_IPQ_MMC
 			mmc = find_mmc_device(mmc_host.dev_num);
 
-			if (mmc)
+			if (mmc) {
 				smem->flash_secondary_type = SMEM_BOOT_MMC_FLASH;
-			else
+				continue;
+			}
 #endif
-				smem->flash_secondary_type = SMEM_BOOT_NAND_FLASH;
+			smem->flash_secondary_type = SMEM_BOOT_NAND_FLASH;
 
 			ipq_part_entry_t *part = entries[i].part;
 			printf("cdp: get part failed for %s\n", entries[i].name);
