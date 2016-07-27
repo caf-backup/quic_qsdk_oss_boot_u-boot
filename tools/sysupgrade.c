@@ -18,6 +18,7 @@
 #include <../drivers/mtd/ubi/ubi-media.h>
 #include <sys/ioctl.h>
 #include <mtd/mtd-user.h>
+#include <limits.h>
 
 #define SBL_VERSION_FILE       "sbl_version"
 #define TZ_VERSION_FILE        "tz_version"
