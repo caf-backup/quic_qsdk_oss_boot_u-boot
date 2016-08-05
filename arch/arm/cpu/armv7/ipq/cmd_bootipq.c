@@ -278,7 +278,7 @@ static int do_boot_signedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const a
 #ifdef CONFIG_IPQ_LOAD_NSS_FW
 	char bootargs[IH_NMLEN+32];
 #endif
-	char runcmd[256];
+	char runcmd[256] = {0};
 	int ret;
 	unsigned int request;
 #ifdef CONFIG_IPQ_MMC
@@ -509,7 +509,7 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 #ifdef CONFIG_IPQ_LOAD_NSS_FW
 	char bootargs[IH_NMLEN+32];
 #endif
-	char runcmd[256];
+	char runcmd[256] = {0};
 	int  ret;
 	unsigned int active_part = 0;
 
