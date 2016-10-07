@@ -365,7 +365,9 @@ int get_sw_id_from_component_bin(struct image_section *section)
 
 	mbn_hdr = (Mbn_Hdr *)fp;
 	if (strstr(section->file, sections[4].type)) {
-		mbn_hdr = (Mbn_Hdr *)(fp + SBL_NAND_PREAMBLE + SBL_HDR_RESERVED);
+		uint32_t preamble = sections[2].is_present ? SBL_NAND_PREAMBLE : 0;
+
+		mbn_hdr = (Mbn_Hdr *)(fp + preamble + SBL_HDR_RESERVED);
 	}
 	sig_cert_size = mbn_hdr->image_size - mbn_hdr->code_size;
 	if (sig_cert_size != SIG_CERT_2_SIZE && sig_cert_size != SIG_CERT_3_SIZE) {
@@ -730,9 +732,11 @@ int split_code_signature_cert_from_component_bin(struct image_section *section,
 
 	mbn_hdr = (Mbn_Hdr *)fp;
 	if (strstr(section->file, sections[4].type)) {
-		mbn_hdr = (Mbn_Hdr *)(fp + SBL_NAND_PREAMBLE + SBL_HDR_RESERVED);
-		sig_offset = SBL_NAND_PREAMBLE + MBN_HDR_SIZE;
-		cert_offset = SBL_NAND_PREAMBLE + MBN_HDR_SIZE;
+		uint32_t preamble = sections[2].is_present ? SBL_NAND_PREAMBLE : 0;
+
+		mbn_hdr = (Mbn_Hdr *)(fp + preamble + SBL_HDR_RESERVED);
+		sig_offset = preamble + MBN_HDR_SIZE;
+		cert_offset = preamble + MBN_HDR_SIZE;
 	}
 	sig_cert_size = mbn_hdr->image_size - mbn_hdr->code_size;
 	if (sig_cert_size != SIG_CERT_2_SIZE && sig_cert_size != SIG_CERT_3_SIZE) {
