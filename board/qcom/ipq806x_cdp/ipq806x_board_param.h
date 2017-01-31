@@ -1263,6 +1263,7 @@ board_ipq806x_params_t board_params[] = {
 			pcie_board_cfg(2),
 		},
 #endif /* CONFIG_IPQ806X_PCI */
+		.dtb_config_name = { "ak01", "v2.0-ak01", "v3.0-ak01"},
 	},
 	{
 		.machid = MACH_TYPE_IPQ806X_AP161,
