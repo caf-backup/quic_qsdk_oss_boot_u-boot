@@ -509,6 +509,24 @@ int ipq_smem_get_socinfo_version(uint32_t *version)
 	return smem_status;
 }
 
+int ipq_smem_get_boot_version(char *buf, int size)
+{
+	int smem_status;
+	struct ipq_socinfo socinfo;
+
+	smem_status = smem_read_alloc_entry(SMEM_HW_SW_BUILD_ID,
+				&socinfo, sizeof(struct ipq_socinfo));
+
+	if (!smem_status) {
+		snprintf(buf, size, "%s\n", socinfo.build_id);
+		debug("smem: boot - version = %s\n", buf);
+	} else {
+		printf("smem: Get socinfo failed\n");
+	}
+
+	return smem_status;
+}
+
 int do_smeminfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	ipq_smem_flash_info_t *sfi = &ipq_smem_flash_info;

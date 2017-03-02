@@ -36,6 +36,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define BUILD_ID_LEN	(32)
+
 #define MTDPARTS_BUF_LEN	256
 
 /* Watchdog bite time set to default reset value */
@@ -794,6 +796,27 @@ int ipq_fdt_fixup_socinfo(void *blob)
 	return ret;
 }
 
+void ipq_fdt_fixup_version(void *blob)
+{
+	int nodeoff;
+	int ret;
+	char version[BUILD_ID_LEN + 1];
+
+	nodeoff = fdt_path_offset(blob, "/");
+	if (nodeoff < 0) {
+		debug("ipq: fdt fixup unable to find root node\n");
+		return;
+	}
+
+	if(!ipq_smem_get_boot_version(version, sizeof(version))) {
+		debug("BOOT Build Version: %s\n", version);
+		ret = fdt_setprop(blob, nodeoff, "boot_version",
+				version, strlen(version));
+		if (ret)
+			debug("%s: unable to set Boot version\n", __func__);
+	}
+}
+
 /*
  * For newer kernel that boot with device tree (3.14+), all of memory is
  * described in the /memory node, including areas that the kernel should not be
@@ -815,6 +838,8 @@ void ft_board_setup(void *blob, bd_t *bd)
 		{ "s25fl256s1", MTD_DEV_TYPE_NAND, 1 },
 		{ NULL, 0, -1 },
 	};
+
+	ipq_fdt_fixup_version(blob);
 
 	if (sfi->flash_type == SMEM_BOOT_NAND_FLASH) {
 		mtdparts = "mtdparts=nand0";
