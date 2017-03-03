@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -21,6 +21,7 @@
 #include <asm/arch-ipq806x/clock.h>
 #include <asm/arch-ipq806x/ebi2.h>
 #include <asm/arch-ipq806x/smem.h>
+#include <asm/arch-ipq806x/scm.h>
 #include <asm/errno.h>
 #include "ipq806x_board_param.h"
 #include "ipq806x_cdp.h"
@@ -796,6 +797,21 @@ int ipq_fdt_fixup_socinfo(void *blob)
 	return ret;
 }
 
+int ipq_get_tz_version(char *buf, int size)
+{
+	int ret;
+
+	ret = scm_call(SCM_SVC_INFO, TZBSP_BUILD_VER_QUERY_CMD, NULL,
+			0, buf, BUILD_ID_LEN);
+	if(ret) {
+		printf("ipq: fdt fixup cannot get TZ build ID\n");
+		return ret;
+	}
+
+	snprintf(buf, size, "%s\n", buf);
+	return 0;
+}
+
 void ipq_fdt_fixup_version(void *blob)
 {
 	int nodeoff;
@@ -814,6 +830,14 @@ void ipq_fdt_fixup_version(void *blob)
 				version, strlen(version));
 		if (ret)
 			debug("%s: unable to set Boot version\n", __func__);
+	}
+
+	if(!ipq_get_tz_version(version, sizeof(version))) {
+		debug("TZ Build Version: %s\n", version);
+		ret = fdt_setprop(blob, nodeoff, "tz_version",
+				version, strlen(version));
+		if (ret)
+			debug("%s: unable to set TZ version\n", __func__);
 	}
 }
 
