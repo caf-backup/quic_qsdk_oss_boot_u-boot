@@ -33,6 +33,8 @@
 #endif
 #endif /* !DO_DEPS_ONLY */
 
+#define CONFIG_SYS_VSNPRINTF
+
 #define CONFIG_BOARD_EARLY_INIT_F
 
 #define CONFIG_SYS_NO_FLASH
