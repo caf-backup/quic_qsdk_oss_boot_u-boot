@@ -836,7 +836,7 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 
 		ipq_gmac_mii_clk_init(ipq_gmac_macs[i], clk_div_val, gmac_cfg);
 
-		strncpy((char *)ipq_gmac_macs[i]->phy_name, gmac_cfg->phy_name,
+		strlcpy((char *)ipq_gmac_macs[i]->phy_name, gmac_cfg->phy_name,
 					sizeof(ipq_gmac_macs[i]->phy_name));
 		bb_nodes[i] = malloc(sizeof(struct bitbang_nodes));
 		if (bb_nodes[i] == NULL)
@@ -845,7 +845,7 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		bb_nodes[i]->mdio = gboard_param->gmac_gpio[0].gpio;
 		bb_nodes[i]->mdc = gboard_param->gmac_gpio[1].gpio;
 		bb_miiphy_buses[i].priv = bb_nodes[i];
-		strncpy(bb_miiphy_buses[i].name, gmac_cfg->phy_name,
+		strlcpy(bb_miiphy_buses[i].name, gmac_cfg->phy_name,
 					sizeof(bb_miiphy_buses[i].name));
 		miiphy_register(bb_miiphy_buses[i].name, bb_miiphy_read, bb_miiphy_write);
 
@@ -871,13 +871,14 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 				 * dts entry for the ethernet entries, which in turn
 				 * will be picked up by the HLOS driver
 				 */
-				sprintf(mac, "%x:%x:%x:%x:%x:%x",
+				snprintf(mac, sizeof(mac), "%x:%x:%x:%x:%x:%x",
 						mac_addr[0], mac_addr[1],
 						mac_addr[2], mac_addr[3],
 						mac_addr[4], mac_addr[5]);
 				setenv(ethaddr, mac);
 			}
-			sprintf(ethaddr, "eth%daddr", (i + 1));
+			snprintf(ethaddr, sizeof(ethaddr), "eth%daddr",
+					(i + 1));
 		}
 	}
 
@@ -887,7 +888,7 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		bb_nodes[i]->mdio = gboard_param->ar8033_gpio[0].gpio;
 		bb_nodes[i]->mdc = gboard_param->ar8033_gpio[1].gpio;
 		bb_miiphy_buses[i].priv = bb_nodes[i];
-		strncpy(bb_miiphy_buses[i].name, "8033",
+		strlcpy(bb_miiphy_buses[i].name, "8033",
 				sizeof(bb_miiphy_buses[i].name));
 		miiphy_register(bb_miiphy_buses[i].name, bb_miiphy_read, bb_miiphy_write);
 	}
