@@ -632,11 +632,6 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 
 		if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 			return CMD_RET_FAILURE;
-
-		update_dtb_config_name((uint32_t)img_addr);
-		snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
-				CONFIG_SYS_LOAD_ADDR,
-				dtb_config_name);
 #ifdef CONFIG_IPQ_MMC
 	} else if (sfi->flash_type == SMEM_BOOT_MMC_FLASH ||
 			sfi->flash_secondary_type == SMEM_BOOT_MMC_FLASH) {
@@ -654,11 +649,6 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 
 			if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 				return CMD_RET_FAILURE;
-
-			update_dtb_config_name((uint32_t)img_addr);
-			snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
-				CONFIG_SYS_LOAD_ADDR,
-				dtb_config_name);
 		}
 
 #endif
@@ -677,12 +667,6 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 		if (run_command(runcmd, 0) != CMD_RET_SUCCESS)
 			return CMD_RET_FAILURE;
 
-		update_dtb_config_name((uint32_t)img_addr);
-
-		snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
-			CONFIG_SYS_LOAD_ADDR,
-			dtb_config_name);
-
 	}
 
 	if (debug)
@@ -692,6 +676,38 @@ static int do_boot_unsignedimg(cmd_tbl_t *cmdtp, int flag, int argc, char *const
 	board_mmc_deinit();
 #endif
 
+	ret = genimg_get_format((void *)CONFIG_SYS_LOAD_ADDR);
+	if (ret == IMAGE_FORMAT_FIT) {
+		update_dtb_config_name((uint32_t)img_addr);
+		snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
+				CONFIG_SYS_LOAD_ADDR,
+				dtb_config_name);
+	} else if (ret == IMAGE_FORMAT_LEGACY) {
+		snprintf(runcmd, sizeof(runcmd),"bootm 0x%x\n",
+				CONFIG_SYS_LOAD_ADDR);
+	} else {
+	/*
+	 * The image could be with MBN header.
+	 * So, Try booting from CONFIG_SYS_LOAD_ADDR + sizeof(mbn_header_t)
+	 */
+		ret = genimg_get_format((void *)CONFIG_SYS_LOAD_ADDR +
+						sizeof(mbn_header_t));
+
+		if (ret == IMAGE_FORMAT_FIT) {
+			update_dtb_config_name((uint32_t)img_addr +
+							sizeof(mbn_header_t));
+			snprintf(runcmd, sizeof(runcmd),"bootm 0x%x%s\n",
+					CONFIG_SYS_LOAD_ADDR +
+					sizeof(mbn_header_t),
+					dtb_config_name);
+		} else if (ret == IMAGE_FORMAT_LEGACY) {
+			snprintf(runcmd, sizeof(runcmd),"bootm 0x%x\n",
+					CONFIG_SYS_LOAD_ADDR +
+					sizeof(mbn_header_t));
+		} else {
+			return CMD_RET_FAILURE;
+		}
+	}
 	if (run_command(runcmd, 0) != CMD_RET_SUCCESS) {
 #ifdef CONFIG_IPQ_MMC
 		mmc_initialize(gd->bd);
