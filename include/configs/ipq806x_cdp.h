@@ -215,6 +215,9 @@ typedef struct {
 
 #define IPQ_TEMP_DUMP_ADDR		(IPQ_MEM_RESERVE_BASE(nsstcmdump))
 
+#define IPQ_TFTP_MIN_ADDR		(CONFIG_SYS_SDRAM_BASE + (32 << 20))
+#define IPQ_TFTP_MAX_ADDR		(gd->start_addr_sp - (2 << 20))
+
 #endif /* __ASSEMBLY__ */
 
 #define CONFIG_CMD_MEMORY
