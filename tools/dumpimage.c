@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 
 	params.cmdname = *argv;
 
-	while ((opt = getopt(argc, argv, "c:li:o:p:V")) != -1) {
+	while ((opt = getopt(argc, argv, "c:li:o:T:p:V")) != -1) {
 		switch (opt) {
 		case 'l':
 			params.lflag = 1;
@@ -182,6 +182,9 @@ int main(int argc, char **argv)
 			break;
 		case 'o':
 			params.outfile = optarg;
+			break;
+		case 'T':
+			/* for compatibility with new u-boot */
 			break;
 		case 'p':
 			params.pflag = strtoul(optarg, &ptr, 10);
