@@ -867,7 +867,7 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *gmac_cfg)
 		bb_nodes[i]->mdio = gboard_param->ar8033_gpio[0].gpio;
 		bb_nodes[i]->mdc = gboard_param->ar8033_gpio[1].gpio;
 		bb_miiphy_buses[i].priv = bb_nodes[i];
-		strncpy(bb_miiphy_buses[i].name, "8033",
+		strlcpy(bb_miiphy_buses[i].name, "8033",
 				sizeof(bb_miiphy_buses[i].name));
 		miiphy_register(bb_miiphy_buses[i].name, bb_miiphy_read, bb_miiphy_write);
 	}
