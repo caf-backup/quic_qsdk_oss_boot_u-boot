@@ -896,6 +896,7 @@ char *create_xor_ipad_opad(char *f_xor, unsigned long long *xor_buffer)
 {
 	int fd;
 	char *file;
+	unsigned long long sw_id;
 
 	file = mktemp(f_xor);
 	fd = open(file, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
@@ -903,7 +904,8 @@ char *create_xor_ipad_opad(char *f_xor, unsigned long long *xor_buffer)
 		perror(file);
 		return NULL;
 	}
-	write(fd, xor_buffer, sizeof(*xor_buffer));
+	sw_id = htobe64(*xor_buffer);
+	write(fd, &sw_id, sizeof(sw_id));
 	close(fd);
 	return file;
 }
