@@ -127,6 +127,8 @@ struct ipq_nand_dev {
 	uint32_t read_cmd;
 	uint32_t write_cmd;
 	u_int oob_per_page;
+
+	unsigned bit_flip_threshold;
 };
 
 #define MTD_NAND_CHIP(mtd) ((struct nand_chip *)((mtd)->priv))
@@ -619,7 +621,7 @@ static int ipq_check_read_status(struct mtd_info *mtd, uint32_t status)
 		return -EBADMSG;
 	}
 
-	if (num_errors)
+	if (num_errors >= dev->bit_flip_threshold)
 		mtd->ecc_stats.corrected++;
 
 	return 0;
@@ -1646,6 +1648,8 @@ static void ipq_nand_hw_config(struct mtd_info *mtd, struct ipq_config *cfg)
 	enable_bch = 0;
 	if (cfg->ecc_mode == ECC_REQ_8BIT)
 		enable_bch = 1;
+
+	dev->bit_flip_threshold = (3 * cfg->ecc_mode) / 4;
 
 	dev->dev_cfg0 = (BUSY_TIMEOUT_ERROR_SELECT_2_SEC
 			 | DISABLE_STATUS_AFTER_WRITE(0)
