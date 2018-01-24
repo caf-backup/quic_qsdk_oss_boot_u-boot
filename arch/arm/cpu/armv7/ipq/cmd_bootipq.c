@@ -77,6 +77,15 @@ static void update_dtb_config_name(uint32_t addr)
 {
 	struct fdt_property *imginfop;
 	int nodeoffset;
+	char *config_name = getenv("config_name");
+
+	if (config_name) {
+		printf("Manual device tree config selected!\n");
+		if (fit_conf_get_node((void *)addr, config_name) >= 0)
+			snprintf(dtb_config_name,
+				 sizeof(dtb_config_name), "#%s", config_name);
+		return;
+	}
 
 	/*
 	 * construt the dtb config name upon image info property
