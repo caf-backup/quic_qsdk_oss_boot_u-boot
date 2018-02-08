@@ -27,6 +27,7 @@
 #define RPM_VERSION_FILE       "rpm_version"
 #define VERSION_FILE_BASENAME  "/sys/devices/system/qfprom/qfprom0/"
 #define AUTHENTICATE_FILE	"/sys/devices/system/qfprom/qfprom0/authenticate"
+#define SEC_AUTHENTICATE_FILE  "/sys/sec_upgrade/sec_auth"
 #define TEMP_KERNEL_PATH	"/tmp/tmp_kernel.bin"
 #define MAX_SBL_VERSION	11
 #define MAX_HLOS_VERSION	32
@@ -56,6 +57,7 @@ struct image_section sections[] = {
 		.file			= TMP_FILE_DIR,
 		.version_file		= APPSBL_VERSION_FILE,
 		.is_present		= NOT_PRESENT,
+		.img_code		= "0x9"
 	},
 	{
 		.section_type		= HLOS_TYPE,
@@ -64,6 +66,7 @@ struct image_section sections[] = {
 		.file			= TMP_FILE_DIR,
 		.version_file		= HLOS_VERSION_FILE,
 		.is_present		= NOT_PRESENT,
+		.img_code		= "0x17"
 	},
 	{
 		.section_type		= HLOS_TYPE,
@@ -74,6 +77,7 @@ struct image_section sections[] = {
 		.file			= TEMP_KERNEL_PATH,
 		.version_file		= HLOS_VERSION_FILE,
 		.is_present		= NOT_PRESENT,
+		.img_code		= "0x17"
 	},
 	{
 		.section_type		= TZ_TYPE,
@@ -82,6 +86,7 @@ struct image_section sections[] = {
 		.file			= TMP_FILE_DIR,
 		.version_file		= TZ_VERSION_FILE,
 		.is_present		= NOT_PRESENT,
+		.img_code		= "0x7"
 	},
 	{
 		.section_type		= SBL_TYPE,
@@ -90,6 +95,7 @@ struct image_section sections[] = {
 		.file			= TMP_FILE_DIR,
 		.version_file		= SBL_VERSION_FILE,
 		.is_present		= NOT_PRESENT,
+		.img_code		= "0x0"
 	},
 	{
 		.section_type		= SBL_TYPE,
@@ -98,6 +104,7 @@ struct image_section sections[] = {
 		.file			= TMP_FILE_DIR,
 		.version_file		= SBL_VERSION_FILE,
 		.is_present		= NOT_PRESENT,
+		.img_code		= "0x5"
 	},
 	{
 		.section_type		= SBL_TYPE,
@@ -106,6 +113,7 @@ struct image_section sections[] = {
 		.file			= TMP_FILE_DIR,
 		.version_file		= SBL_VERSION_FILE,
 		.is_present		= NOT_PRESENT,
+		.img_code		= "0x6"
 	},
 	{
 		.section_type		= RPM_TYPE,
@@ -114,6 +122,7 @@ struct image_section sections[] = {
 		.file			= TMP_FILE_DIR,
 		.version_file		= RPM_VERSION_FILE,
 		.is_present		= NOT_PRESENT,
+		.img_code		= "0xA"
 	},
 };
 
@@ -204,6 +213,44 @@ int get_sections(void)
 	return 1;
 }
 
+int load_sections(void)
+{
+	DIR *dir;
+	int i;
+	struct dirent *file;
+	struct image_section *sec;
+
+	dir = opendir(TMP_FILE_DIR);
+	if (dir == NULL) {
+		printf("Error accessing the %s image directory\n", TMP_FILE_DIR);
+		return 0;
+	}
+
+	while ((file = readdir(dir)) != NULL) {
+		for (i = 0, sec = &sections[0]; i < NO_OF_SECTIONS; i++, sec++) {
+			if (strstr(file->d_name, sec->type)) {
+				if (sec->pre_op) {
+					strlcat(sec->tmp_file, file->d_name,
+							sizeof(sec->tmp_file));
+					if (!sec->pre_op(sec)) {
+						printf("Error extracting %s from ubi\n",
+									   sec->tmp_file);
+						closedir(dir);
+						return 0;
+					}
+				} else {
+					strlcat(sec->file, file->d_name,
+							sizeof(sec->file));
+				}
+				sec->is_present = PRESENT;
+				break;
+			}
+		}
+	}
+	closedir(dir);
+	return 1;
+}
+
 /**
  * is_authentication_check_enabled() - checks whether installed image is
  * secure(1) or not(0)
@@ -227,6 +274,17 @@ int is_authentication_check_enabled(void)
 		return 0;
 	}
 
+	return 1;
+}
+
+int is_tz_authentication_enabled(void)
+{
+	struct stat sb;
+
+	if (stat(SEC_AUTHENTICATE_FILE, &sb) == -1) {
+		perror("stat");
+		return 0;
+	}
 	return 1;
 }
 
@@ -329,6 +387,18 @@ char *find_value(char *buffer, char *search, int size)
 }
 
 /**
+ * check_nand_preamble() compares first 12 bytes of section with
+ * pre defined PREAMBLE value and returns 0 if both value matches
+ */
+int check_nand_preamble(uint8_t *mfp)
+{
+	char magic[12] = { 0xd1, 0xdc, 0x4b, 0x84,
+			   0x34, 0x10, 0xd7, 0x73,
+			   0x5a, 0x43, 0x0b, 0x7d };
+	return memcmp(magic, mfp, sizeof(magic));
+}
+
+/**
  * get_sw_id_from_component_bin() parses the MBN header & checks image size v/s
  * code size. If both differ, it means signature & certificates are
  * appended at end.
@@ -366,7 +436,7 @@ int get_sw_id_from_component_bin(struct image_section *section)
 
 	mbn_hdr = (Mbn_Hdr *)fp;
 	if (strstr(section->file, sections[4].type)) {
-		uint32_t preamble = sections[2].is_present ? SBL_NAND_PREAMBLE : 0;
+		uint32_t preamble = !check_nand_preamble(fp) ? SBL_NAND_PREAMBLE : 0;
 		Sbl_Hdr *sbl_hdr = (Sbl_Hdr *)(fp + preamble);
 
 		sig_cert_size = sbl_hdr->image_size - sbl_hdr->code_size;
@@ -739,7 +809,7 @@ int split_code_signature_cert_from_component_bin(struct image_section *section,
 
 	mbn_hdr = (Mbn_Hdr *)fp;
 	if (strstr(section->file, sections[4].type)) {
-		uint32_t preamble = sections[2].is_present ? SBL_NAND_PREAMBLE : 0;
+		uint32_t preamble = !check_nand_preamble(fp) ? SBL_NAND_PREAMBLE : 0;
 
 		sbl_hdr = (Sbl_Hdr *)(fp + preamble);
 		src_offset = preamble;
@@ -1169,9 +1239,43 @@ int is_image_authenticated(void)
 	return 1;
 }
 
+int sec_image_auth()
+{
+	int fd, i, len;
+	char buf[256];
+
+	fd = open(SEC_AUTHENTICATE_FILE, O_RDWR);
+	if (-1 == fd) {
+		perror(SEC_AUTHENTICATE_FILE);
+		return 1;
+	}
+
+	for (i = 0; i < NO_OF_SECTIONS; i++) {
+		if (!sections[i].is_present) {
+			continue;
+		}
+
+		len = snprintf(buf, sizeof(buf), "%s %s", sections[i].img_code, sections[i].file);
+		if (write(fd, buf, len) != len) {
+			perror("write");
+			printf("%s Image authentication failed\n", buf);
+			return 1;
+		}
+	}
+	close(fd);
+	return 0;
+}
+
 int do_board_upgrade_check(char *img)
 {
-	if (is_authentication_check_enabled()) {
+	if (is_tz_authentication_enabled()) {
+		printf("TZ authentication enabled ...\n");
+		if (!load_sections()) {
+			printf("Error: Failed to load sections from image: %s\n", img);
+			return 1;
+		}
+		return sec_image_auth();
+	} else if (is_authentication_check_enabled()) {
 		if (!get_sections()) {
 			printf("Error: %s is not a signed image\n", img);
 			return 1;
