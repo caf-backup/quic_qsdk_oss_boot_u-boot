@@ -1258,6 +1258,7 @@ int sec_image_auth()
 		len = snprintf(buf, sizeof(buf), "%s %s", sections[i].img_code, sections[i].file);
 		if (write(fd, buf, len) != len) {
 			perror("write");
+			close(fd);
 			printf("%s Image authentication failed\n", buf);
 			return 1;
 		}
