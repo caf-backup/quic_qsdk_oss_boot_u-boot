@@ -1269,9 +1269,9 @@ int sec_image_auth()
 		}
 		if (write(fd, buf, len) != len) {
 			perror("write");
+			printf("%s Image authentication failed\n", buf);
 			free(buf);
 			close(fd);
-			printf("%s Image authentication failed\n", buf);
 			return 1;
 		}
 	}
