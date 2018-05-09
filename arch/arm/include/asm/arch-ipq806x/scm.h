@@ -34,6 +34,8 @@
 #define IS_CALL_AVAIL_CMD		0x1
 #define SCM_CMD_SEC_AUTH		0x15
 
+#define	SCM_SVC_ID_SHIFT		0xA
+
 int scm_init(void);
 extern int scm_call(u32 svc_id, u32 cmd_id, const void *cmd_buf, size_t cmd_len,
 		void *resp_buf, size_t resp_len);

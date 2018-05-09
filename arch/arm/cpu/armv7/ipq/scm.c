@@ -244,7 +244,7 @@ int scm_call(u32 svc_id, u32 cmd_id, const void *cmd_buf, size_t cmd_len,
 	if (!cmd)
 		return -ENOMEM;
 
-	cmd->id = (svc_id << 10) | cmd_id;
+	cmd->id = (svc_id << SCM_SVC_ID_SHIFT) | cmd_id;
 	if (cmd_buf)
 		memcpy(scm_get_command_buffer(cmd), cmd_buf, cmd_len);
 
