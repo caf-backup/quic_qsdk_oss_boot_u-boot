@@ -5,6 +5,9 @@
 #define RAM_PARTITION_SYS_MEMORY 1
 #define IPQ_NAND_ROOTFS_SIZE (64 << 20)
 
+#define SOCINFO_VERSION_MAJOR(ver) ((ver & 0xffff0000) >> 16)
+#define SOCINFO_VERSION_MINOR(ver) (ver & 0x0000ffff)
+
 enum {
 	SMEM_BOOT_NO_FLASH        = 0,
 	SMEM_BOOT_NOR_FLASH       = 1,

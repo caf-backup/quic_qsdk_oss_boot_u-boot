@@ -32,8 +32,6 @@
  *   1.0 -> 0x00010000
  *   2.3 -> 0x00020003
  */
-#define SOCINFO_VERSION_MAJOR(ver) ((ver & 0xffff0000) >> 16)
-#define SOCINFO_VERSION_MINOR(ver) (ver & 0x0000ffff)
 
 DECLARE_GLOBAL_DATA_PTR;
 static int debug = 0;
