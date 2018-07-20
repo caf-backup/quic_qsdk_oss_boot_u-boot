@@ -778,11 +778,18 @@ void ipq_fdt_fixup_mtdparts(void *blob, struct node_info *ni)
 	}
 }
 
-int ipq_fdt_fixup_socinfo(void *blob)
+void ipq_fdt_fixup_socinfo(void *blob)
 {
 	uint32_t cpu_type;
 	uint32_t soc_version, soc_version_major, soc_version_minor;
 	int nodeoff, ret;
+
+	nodeoff = fdt_path_offset(blob, "/");
+
+	if (nodeoff < 0) {
+		printf("ipq: fdt fixup cannot find root node\n");
+		return;
+	}
 
 	/* Add "cpu_type" to root node of the devicetree*/
 	ret = ipq_smem_get_socinfo_cpu_type(&cpu_type);
@@ -915,8 +922,7 @@ void ft_board_setup(void *blob, bd_t *bd)
 	setenv("mtdparts", mtdparts);
 
 	ipq_fdt_fixup_mtdparts(blob, nodes);
-	if (0 != ipq_fdt_fixup_socinfo(blob))
-		printf("ipq: fdt fixup failed for socinfo\n");
+	ipq_fdt_fixup_socinfo(blob);
 
 	fdt_fixup_ethernet(blob);
 }
