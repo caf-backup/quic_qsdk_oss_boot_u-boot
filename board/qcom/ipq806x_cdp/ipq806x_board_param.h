@@ -1273,11 +1273,12 @@ board_ipq806x_params_t board_params[] = {
 		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
 		.gmac_gpio = gmac1_gpio,
 		.gmac_cfg = {
+			gmac_board_cfg(0, 1, RGMII, S17_RGMII0_1_8V,
+					S17_RGMII1_1_8V, 0, 1, 0),
 			gmac_board_cfg(1, 1, RGMII, S17_RGMII0_1_8V,
 					S17_RGMII1_1_8V, 0, 1, 4),
 			gmac_board_cfg(2, 1, SGMII, S17_RGMII0_1_8V,
 					S17_RGMII1_1_8V, 0, 4, 0, 1, 2, 3),
-			gmac_board_cfg_invalid(),
 			gmac_board_cfg_invalid(),
 		},
 		.flashdesc = NAND_NOR,
